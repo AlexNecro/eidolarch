@@ -1,0 +1,19 @@
+{
+  "name": "Eidolarch",
+  "short_name": "Eidolarch",
+  "description": "Local-first photo archive, duplicate finder and visual curator",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#101218",
+  "theme_color": "#101218",
+  "icons": [
+    {
+      "src": "/assets/icons/app-mark.svg?v=2.2.9",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

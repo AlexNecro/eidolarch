@@ -1,0 +1,78 @@
+# Eidolarch runtime data
+data/*
+!data/README.txt
+.browser-profile/
+
+# Python environments / bytecode
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Databases / caches / logs / backups
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.log
+*.log.*
+*.bak
+*.backup
+*.tmp
+*.temp
+*.pid
+thumbs/
+cache/
+model-cache/
+.huggingface/
+
+# Local secrets / configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Model weights
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+*.gguf
+
+# IDE / OS
+.vscode/
+.idea/
+.vs/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build / packaging output
+build/
+dist/
+*.egg-info/
+*.zip
+*.7z
+*.tar
+*.tar.gz
+
+# Local reports / crash dumps
+Eidolarch-error-report-*.zip
+*.dmp
+crash-*.txt
+
+# Browser app profile / runtime state
+.browser-profile/
+data/recovery/

@@ -1,0 +1,10 @@
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+pillow==12.3.0
+numpy==2.5.3
+transformers==5.17.0
+safetensors==0.8.0
+qrcode[pil]==8.2
+send2trash==1.8.3
+pillow-heif==1.1.1
+watchdog==6.0.0
