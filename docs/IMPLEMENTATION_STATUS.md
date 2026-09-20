@@ -26,3 +26,9 @@ Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, 
 - Object panel supports re-detect-and-save, preserves manual entity assignments when new boxes strongly overlap, and can highlight detector boxes on the image.
 - Duplicate viewer separates the current file from actual duplicates and does not count the current file as its own duplicate.
 - Similar visual signatures are cached by physical file version; reference photo / empty-result UI is explicit.
+
+## 2.2.11 interface stabilization
+- Replaced native browser-style tooltips in the main UI with a single styled/localized Eidolarch tooltip system.
+- Search-field tooltip documents current/planned query syntax without claiming @entity is already active.
+- Duplicate count badge stays anchored in the top-left and acts as the duplicate action; hover actions no longer replace or reorder it.
+- Duplicate path preview is requested only when hovering the duplicate badge, rather than on every tile hover.
