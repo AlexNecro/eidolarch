@@ -1,6 +1,6 @@
 {
   "app.title": "Eidolarch",
-  "app.version": "v2.2.9",
+  "app.version": "v2.2.10",
   "search.placeholder": "Поиск по фотографиям…",
   "search.find": "Найти",
   "search.clear": "Очистить поиск",
@@ -236,5 +236,14 @@
   "viewer.copyDiagnostics": "Копировать диагностику",
   "error.similarFailed": "Не удалось найти похожие фотографии",
   "onboarding.addAnother": "Добавить ещё папку?",
-  "onboarding.done": "Готово"
+  "onboarding.done": "Готово",
+  "objects.redetectSave": "Перераспознать и сохранить",
+  "objects.redetectRunning": "Перераспознаю и сохраняю…",
+  "objects.redetectDone": "Результат сохранён",
+  "viewer.referencePhoto": "Исходная фотография",
+  "viewer.similarResults": "Похожие фотографии",
+  "viewer.currentFile": "Текущий файл",
+  "viewer.duplicateResults": "Дубликаты",
+  "error.thumbnailFailed": "Не удалось создать миниатюру",
+  "error.redetectFailed": "Не удалось перераспознать объекты"
 }
