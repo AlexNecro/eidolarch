@@ -54,7 +54,14 @@
 - Database/results refresh immediately after file removal.
 - Eidolarch may recommend; it must not silently remove originals or choose irreversible actions.
 
-### 5. Details view / duplicate hover UX
+### 5. Tile hover action stability
+- The duplicate badge shown in the tile corner must not jump to another position when hover actions appear.
+- Hover-revealed controls should preserve the spatial position of persistent indicators such as duplicate count.
+- Recommended layout: keep the duplicate badge anchored in the top-left; reveal the other action buttons to its right (or in a separate stable strip) without replacing/reordering it.
+- The pointer should never appear to "lose" the duplicate control merely because the hover toolbar opened.
+- Persistent badges and transient actions should be visually distinct: badge = status/count, toolbar buttons = actions.
+
+### 6. Details view / duplicate hover UX
 - The current large hover overlay obscures the row being inspected; remove it from Details mode or replace it with a compact non-covering tooltip/popover.
 - Duplicate locations and other important metadata should be visible directly in Details columns, not hidden behind hover.
 - Details mode should behave like a real details/table view, not a stretched Content view.
@@ -63,19 +70,19 @@
 - Consider columns: Name, Folder/Path, Date, Dimensions, Size, Duplicate count/type, Path priority, Rating, Keeper status.
 - Preserve the same central/current photo when switching Grid / Content / Details views.
 
-### 6. Similar performance
+### 7. Similar performance
 - Profile refresh latency on the real library and cache results by photo + embedding revision.
 - Remove remaining N+1 work.
 - Keep the reference photo separate from results and explicit empty state.
 - If brute-force search remains slow, introduce an ANN index.
 
-### 7. Sorting audit
+### 8. Sorting audit
 - Verify Search/Folders/Tags/Duplicates end-to-end.
 - Add explicit `Relevance` for semantic search.
 - Semantic search should choose its relevance shortlist first, then apply the selected secondary sort consistently.
 - In Details mode, column-header sorting should use the same backend sort contract rather than a separate client-only implementation.
 
-### 8. Search language / named entities
+### 9. Search language / named entities
 - `@name` = named person/pet.
 - `#tag` = exact tag.
 - Plain text = broad search.
@@ -84,12 +91,12 @@
 - Plain text should eventually combine semantic, OCR, filename/path and metadata.
 - OCR is required for photographed documents/screens/signs, not an optional afterthought.
 
-### 9. Tooltips and help UX
+### 10. Tooltips and help UX
 - Replace native browser `title` tooltips with one styled, localized Eidolarch tooltip/popover component.
 - Search-field help must explain the query language.
 - Constrain the large Help/About logo to roughly 240–320 px instead of filling the content pane.
 
-### 10. Localization cleanup
+### 11. Localization cleanup
 - User-visible backend/frontend strings should be localization IDs.
 - Missing keys fall back to English with a development warning.
 - Never expose raw localization identifiers to the user.
