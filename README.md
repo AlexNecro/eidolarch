@@ -1,83 +1,143 @@
 # Eidolarch
 
-Eidolarch is a local-first photo gallery for Windows with local photo triage: folder browsing, duplicate detection, similarity search, semantic search, EXIF inspection and ordinary file-management operations. The Python/FastAPI backend runs locally; the UI is a web app that can be opened as a desktop-style Edge/Chrome app window or from another device on the LAN.
+Eidolarch is a local-first Windows photo gallery and cleanup tool focused on large personal photo archives: browse folders, find duplicates, search by visual meaning, inspect metadata, and gradually build named people/pet entities without uploading the library to a cloud service.
 
-## Current capabilities
+Current version: **2.2.10**.
 
-- Browse multiple photo folders and subfolders without waiting for AI indexing.
-- Natural-language image search using local image/text embeddings.
+## What Eidolarch can do now
+
+- Browse multiple photo roots and subfolders immediately, without waiting for AI indexing.
+- Natural-language semantic photo search using local image/text embeddings.
 - Folder and cumulative tag navigation.
-- Exact/near duplicate detection and visually similar photos.
-- EXIF/details inspector, manual tags, favorites, rating, color labels and comments.
-- Background indexing with GPU/CPU fallback and selectable AI backend.
-- Multi-selection and common file operations: copy, move, rename, Recycle Bin, Explorer, external viewer and print.
-- Multiple independent UI windows over one backend.
-- Dark/light/system themes, Russian/English UI, LAN access and PWA shell.
-- Built-in help available from the `?` button in the application.
+- Exact and near-duplicate detection.
+- Visually similar-photo search.
+- EXIF/details viewer with zoom, pan, fullscreen and separate viewer windows.
+- Object detection for people/cats/dogs with diagnostics and manual naming.
+- Manual metadata: tags, favorites, ratings, color labels and comments.
+- Common file operations: copy, move, rename, open in Explorer, external viewer, print and move to Windows Recycle Bin.
+- Background indexing with CUDA/CPU fallback.
+- Multiple independent UI windows over one local backend.
+- Russian/English UI, dark/light/system themes, LAN access and PWA shell.
+- Built-in Help and Diagnostics.
+
+## Current project focus
+
+The project is still experimental. The current stabilization priorities are:
+
+1. **UI consistency**
+   - replace native browser tooltips with styled localized Eidolarch tooltips;
+   - keep duplicate badges/actions spatially stable on hover;
+   - clean up icon/button behavior.
+
+2. **Duplicate workflow**
+   - real duplicate groups instead of one stretched row per file;
+   - visible paths, exact/near type, size, dimensions and path priority;
+   - recommended keeper and folder/package grouping;
+   - safe Recycle Bin workflow.
+
+3. **Named entities**
+   - remove duplicate detections of the same animal;
+   - suppress unusable person fragments such as isolated hands/legs;
+   - preserve unsaved text in neighboring name fields;
+   - add explicit saved/dirty state;
+   - later support entity search such as `@Тера`, `@Мойва`, `@Алексей`.
+
+4. **Details view**
+   - real table/details mode with sticky headers;
+   - sortable columns;
+   - useful metadata visible without hover;
+   - preserve the current photo while switching view modes.
+
+The detailed active backlog is in [`docs/NEXT_VERSION.md`](docs/NEXT_VERSION.md).
 
 ## Quick start on Windows
 
-1. Extract the archive to a writable folder.
-2. Run `run.bat`.
-3. Add one or more photo folders in **Settings**.
-4. Eidolarch starts indexing automatically. Browsing works immediately; AI search improves as indexing progresses.
+1. Download the latest Windows ZIP from GitHub Releases.
+2. Extract it to a writable folder.
+3. Run `run.bat`.
+4. Add the first photo folder when prompted, or use **+ Add folder** in the main window.
+5. Browsing works immediately; AI indexes continue in the background.
 
-The bootstrap creates `.venv`, installs Python if necessary and installs a CUDA-enabled PyTorch build when a compatible NVIDIA GPU is available. CPU fallback is supported.
+On first launch Eidolarch creates `.venv`, installs Python if required, installs the application dependencies, and configures a compatible PyTorch/torchvision stack. An NVIDIA GPU is optional; CPU fallback is supported.
 
-> Keep the `data/` directory when updating. It contains the local database and generated index data. Distribution archives do not intentionally ship a working user database.
+> Keep the `data/` directory when upgrading. It contains the local database and generated indexes. Release archives must not contain a user database, thumbnail cache, logs or browser profile.
+
+## Search model
+
+Current semantic search treats plain text as a visual/text embedding query. The planned unified query language is:
+
+- `@name` — a specific named person or pet;
+- `#tag` — an exact tag;
+- plain text — broad search across semantic content and, later, OCR / filename / path / metadata.
+
+Example future queries:
+
+- `@Тера на диване`
+- `@Алексей @Тера`
+- `#документ 1С`
+
+OCR is planned as a first-class search index for photographed documents, screenshots, signs and similar images.
 
 ## Privacy
 
-Eidolarch is local-first. Originals stay in their existing folders. Thumbnails, metadata and AI indexes are stored separately. Remote AI backends and LAN access are optional.
+Eidolarch is local-first:
+
+- original photos stay in their existing folders;
+- thumbnails, metadata and AI indexes are stored separately;
+- local AI is the default design target;
+- LAN access is optional;
+- remote AI backends, if configured, are optional rather than required.
+
+## Hardware
+
+Eidolarch is designed to run without a discrete GPU.
+
+Processing is layered:
+
+1. cheap CPU work — metadata, thumbnails, hashes and duplicate analysis;
+2. visual embeddings — CPU or CUDA;
+3. specialized analysis — people/pets and future OCR/faces;
+4. expensive reasoning — future optional VLM workflows.
+
+## Development / diagnostics
+
+Use `run_console.bat` to keep the backend console visible.
+
+The application includes diagnostics for:
+- AI/runtime state;
+- torch / torchvision;
+- object detector;
+- indexing jobs;
+- error reports.
+
+Release builds are checked with `tools/check_release.py`.
 
 ## Documentation
 
-User documentation is built into the application (`?` in the top bar). Developer-oriented documents are in [`docs/`](docs/):
+Developer-oriented documents:
 
 - [`ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md)
-- [`ROADMAP.md`](docs/ROADMAP.md)
 - [`NEXT_VERSION.md`](docs/NEXT_VERSION.md)
+- [`ROADMAP.md`](docs/ROADMAP.md)
+- [`UX_AUDIT.md`](docs/UX_AUDIT.md)
 
-## Development status
+Release notes:
+- [`RELEASE_NOTES_2.2.10.md`](docs/RELEASE_NOTES_2.2.10.md)
 
-Eidolarch is an experimental project. Core browsing, indexing and search work, but some subsystems are still being tuned, especially entity recognition, similarity grouping/ranking and packaging. The design target is CPU-first compatibility with optional GPU acceleration.
+## Known experimental areas
 
-## Run from console
+- Named people/pet recognition is still experimental.
+- Similar-photo ranking and performance are still being tuned.
+- Duplicate cleanup UI is not yet the intended grouped workflow.
+- Semantic search can return weak results for ambiguous short queries.
+- OCR and `@entity` search are not implemented yet.
+- Some UI strings/tooltips still need localization cleanup.
 
-Use `run_console.bat` to keep the backend console visible while debugging.
+## Safety of file operations
+
+Eidolarch may recommend which duplicates to keep, but it should not silently delete originals or make irreversible decisions. Destructive operations should go through explicit confirmation and the Windows Recycle Bin where possible.
 
 ## License
 
 A license has not been selected yet.
-
-### UX / help maintenance
-
-- [`UX_AUDIT.md`](docs/UX_AUDIT.md) tracks controls and states that still need clearer affordances or contextual help.
-
-
-### v2.1.2
-
-- Автотеги теперь калибруются по распределению всей библиотеки, а не выдаются как top-N для каждого фото.
-- Для каждого понятия действует собственный предел распространённости и robust-порог; шумные специальные теги (`текст`, `документ`, `экран`, `селфи`) стали значительно строже.
-- Ограничено количество тегов одной категории и общее число автотегов на фотографию.
-- После индексации выполняется быстрый векторный пересчёт автотегов без повторного чтения изображений.
-- Пересборка тегов записывается одной транзакцией и заметно быстрее на больших библиотеках.
-
-### v2.1.1
-Stability hotfix for object recognition and Favorites, with built-in diagnostics and fail-fast background jobs.
-
-
-## v2.2.1
-
-First Eidolarch-branded foundation release. Keeps legacy PhotoMind data automatically, adds CPU/GPU-oriented performance profiles, QR-first LAN access, richer duplicate hover paths, and a zoom/pan/fullscreen standalone viewer.
-
-
-### v2.2.3
-- Fixed stale desktop/PWA client after upgrades: cache-busted assets, no-cache HTML/service worker, launcher uses a unique versioned URL, and client/backend version mismatch triggers a one-time reload.
-- `/api/info` and diagnostics now report the actual application version.
-- Added favicon route.
-
-
-### v2.2.4
-- Stabilization release: new Eidolarch icon family, duplicate sorting fix, AI-search error handling/reporting, cache/version synchronization and Git-safe working-folder publishing.
