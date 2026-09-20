@@ -32,3 +32,10 @@ Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, 
 - Search-field tooltip documents current/planned query syntax without claiming @entity is already active.
 - Duplicate count badge stays anchored in the top-left and acts as the duplicate action; hover actions no longer replace or reorder it.
 - Duplicate path preview is requested only when hovering the duplicate badge, rather than on every tile hover.
+
+## 2.2.12 entity search / duplicate UI
+- `@name` now filters by named entities instead of falling through to semantic search.
+- Search autocomplete suggests existing named entities after `@`.
+- Duplicate hover action overlays the duplicate badge position.
+- Content/list view shows the current file path prominently and up to three duplicate paths beneath it.
+- Missing capture date in Details is shown as an explicit localized label instead of a bare dash.
