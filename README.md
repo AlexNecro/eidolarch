@@ -2,7 +2,7 @@
 
 Eidolarch is a local-first Windows photo gallery and cleanup tool focused on large personal photo archives: browse folders, find duplicates, search by visual meaning, inspect metadata, and gradually build named people/pet entities without uploading the library to a cloud service.
 
-Current version: **2.2.10**.
+Current version: **2.2.11**.
 
 ## What Eidolarch can do now
 
@@ -123,7 +123,7 @@ Developer-oriented documents:
 - [`UX_AUDIT.md`](docs/UX_AUDIT.md)
 
 Release notes:
-- [`RELEASE_NOTES_2.2.10.md`](docs/RELEASE_NOTES_2.2.10.md)
+- [`RELEASE_NOTES_2.2.11.md`](docs/RELEASE_NOTES_2.2.11.md)
 
 ## Known experimental areas
 
