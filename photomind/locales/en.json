@@ -250,5 +250,6 @@
   "hint.uiTooltip": "Interface hint",
   "details.noDate": "Date unknown",
   "hint.favorites": "Show photos marked with a star",
-  "favorites.empty": "No favorite photos yet"
+  "favorites.empty": "No favorite photos yet",
+  "graph.hint": "Hover a node to highlight its connections. Click a node to filter the main window by that tag."
 }
