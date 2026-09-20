@@ -17,7 +17,7 @@ function draw(data){
  }
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.setAttribute('class','graph-svg');
  const edgeEls=[];
- for(const e of data.edges){const a=by.get(e.a),b=by.get(e.b);if(!a||!b)continue;const l=document.createElementNS(ns,'line');l.dataset.a=e.a;l.dataset.b=e.b;l.setAttribute('x1',a.x);l.setAttribute('y1',a.y);l.setAttribute('x2',b.x);l.setAttribute('y2',b.y);l.setAttribute('stroke-width',Math.min(5,.5+Math.log1p(e.weight)));l.setAttribute('class','graph-edge');svg.appendChild(l);edgeEls.push(l)}
+ for(const e of data.edges){const a=by.get(e.a),b=by.get(e.b);if(!a||!b)continue;const l=document.createElementNS(ns,'line');l.dataset.a=e.a;l.dataset.b=e.b;l.setAttribute('x1',a.x);l.setAttribute('y1',a.y);l.setAttribute('x2',b.x);l.setAttribute('y2',b.y);l.setAttribute('stroke-width',Math.min(2.1,.45+.42*Math.log1p(e.weight)));l.setAttribute('class','graph-edge');svg.appendChild(l);edgeEls.push(l)}
  const max=Math.max(...nodes.map(n=>n.count)),nodeEls=[];
  const clear=()=>{for(const l of edgeEls)l.classList.remove('active','dim');for(const g of nodeEls)g.classList.remove('active','dim')};
  for(const n of nodes){const g=document.createElementNS(ns,'g');g.dataset.id=n.id;g.setAttribute('class','graph-node');g.setAttribute('transform',`translate(${n.x},${n.y})`);const c=document.createElementNS(ns,'circle');c.setAttribute('r',8+18*Math.sqrt(n.count/max));const tx=document.createElementNS(ns,'text');tx.setAttribute('y',-14);tx.setAttribute('text-anchor','middle');tx.textContent='#'+n.name;g.append(c,tx);
