@@ -11,6 +11,7 @@ import socket
 import base64
 from datetime import datetime
 from pathlib import Path
+from functools import lru_cache
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response
@@ -40,7 +41,7 @@ _FS_STATS_CACHE = {}
 _FS_STATS_LOCK = threading.Lock()
 _FS_STATS_TTL = 120.0
 db.init_db()
-APP_VERSION = '2.2.9'
+APP_VERSION = '2.2.10'
 app = FastAPI(title='Eidolarch', version=APP_VERSION)
 
 @app.middleware('http')
@@ -120,7 +121,8 @@ def photo_json(r, duplicate_count_override=None):
     d = {
         'id': photo_id, 'name': _row_get(r, 'name', ''), 'taken_at': _row_get(r, 'taken_at'),
         'width': _row_get(r, 'width'), 'height': _row_get(r, 'height'),
-        'thumbnail': f"/api/photos/{photo_id}/thumbnail", 'preview': f"/api/photos/{photo_id}/original",
+        'thumbnail': f"/api/photos/{photo_id}/thumbnail?fv={int(_row_get(r, 'mtime_ns', 0) or 0)}-{int(_row_get(r, 'size', 0) or 0)}",
+        'preview': f"/api/photos/{photo_id}/original?fv={int(_row_get(r, 'mtime_ns', 0) or 0)}-{int(_row_get(r, 'size', 0) or 0)}",
         'duplicate_count': db.duplicate_count(photo_id) if duplicate_count_override is None else int(duplicate_count_override),
         'path': _row_get(r, 'path', ''),
         'indexed_at': _row_get(r, 'indexed_at'),
@@ -157,11 +159,7 @@ def _resolve_library_path(folder_id: int, rel: str = '') -> tuple[Path, Path]:
 
 
 def _lazy_thumb_path(path: Path) -> Path:
-    import hashlib
-    h = hashlib.sha1(str(path).encode('utf-8', 'ignore')).hexdigest()
-    d = indexer._thumb_path(path).parent
-    d.mkdir(parents=True, exist_ok=True)
-    return d / f'{h}.jpg'
+    return indexer._thumb_path(path)
 
 
 def _ensure_browse_photo(folder_id: int, path: Path) -> dict:
@@ -290,7 +288,7 @@ def _photo_exif_info(path: Path):
         pass
     return info
 
-def _visual_signature(path: Path):
+def _visual_signature_uncached(path: Path):
     import numpy as np
     with Image.open(path) as im:
         im = ImageOps.exif_transpose(im).convert('RGB')
@@ -304,6 +302,14 @@ def _visual_signature(path: Path):
             h,_ = np.histogram(a[:,:,c], bins=8, range=(0,1), density=False)
             h=h.astype(np.float32); h/=max(1.0,float(h.sum())); hist.append(h)
         return a, np.concatenate(hist)
+
+@lru_cache(maxsize=4096)
+def _visual_signature_cached(path_s: str, mtime_ns: int, size: int):
+    return _visual_signature_uncached(Path(path_s))
+
+def _visual_signature(path: Path):
+    st = path.stat()
+    return _visual_signature_cached(str(path), int(st.st_mtime_ns), int(st.st_size))
 
 def _visual_similarity(sig_a, sig_b):
     import numpy as np
@@ -707,11 +713,16 @@ def duplicates(photo_id: int):
     current=db.get_photo(photo_id)
     if not current: raise HTTPException(404, {'code':'error.photoNotFound'})
     h=db.conn().execute('SELECT sha256,dhash FROM photo_hashes WHERE photo_id=?',(photo_id,)).fetchone()
-    if not h:return {'photo_id':photo_id,'items':[]}
+    current_json=photo_json(current, db.duplicate_count(photo_id))
+    current_json['is_current']=True
+    current_json['path_priority']=_duplicate_path_score(current_json.get('path',''))
+    if not h:return {'photo_id':photo_id,'current':current_json,'items':[],'exact_count':0,'near_count':0}
     ids=[photo_id,*db.photo_ids_by_hash(photo_id)]
+    # De-duplicate ids while keeping deterministic order.
+    ids=list(dict.fromkeys(int(x) for x in ids))
     rows=db.photo_rows_by_ids(ids)
     counts=db.duplicate_counts(ids)
-    items=[]
+    group=[]
     for r in rows:
         d=photo_json(r,counts.get(int(r['id']),0))
         rh=db.conn().execute('SELECT sha256,dhash FROM photo_hashes WHERE photo_id=?',(int(r['id']),)).fetchone()
@@ -721,13 +732,21 @@ def duplicates(photo_id: int):
         d['path_priority']=_duplicate_path_score(d.get('path',''))
         d['is_current']=int(r['id'])==int(photo_id)
         d['_rank']=(d['path_priority'], int((d.get('width') or 0)*(d.get('height') or 0)), int(d.get('size') or 0), 1 if d.get('taken_at') else 0)
-        items.append(d)
-    if items:
-        best=max(x['_rank'] for x in items)
-        for x in items:
-            x['recommended_keep']=x['_rank']==best
+        group.append(d)
+    if group:
+        # Recommend exactly one keeper. On a complete tie prefer the current file,
+        # otherwise keep the deterministic lowest photo id rather than marking all copies.
+        winner=max(group, key=lambda x:(x['_rank'], 1 if x['is_current'] else 0, -int(x['id'])))
+        for x in group:
+            x['recommended_keep']=x is winner
             x.pop('_rank',None)
-    return {'photo_id':photo_id,'items':items,'exact_count':sum(1 for x in items if x['match_type']=='exact')-1,'near_count':sum(1 for x in items if x['match_type']=='near' and not x['is_current'])}
+    cur=next((x for x in group if x['is_current']),current_json)
+    others=[x for x in group if not x['is_current']]
+    return {
+        'photo_id':photo_id,'current':cur,'items':others,
+        'exact_count':sum(1 for x in others if x['match_type']=='exact'),
+        'near_count':sum(1 for x in others if x['match_type']=='near')
+    }
 
 
 @app.get('/api/photos/{photo_id}/detections')
@@ -737,6 +756,7 @@ def detections(photo_id: int):
     for r in db.list_detections(photo_id):
         items.append({'id': int(r['id']), 'kind': r['kind'], 'kind_label_key': DISPLAY_KIND.get(r['kind'], 'entity.kind.unknown'),
                       'score': float(r['score']), 'entity_id': r['entity_id'], 'entity_name': r['entity_name'],
+                      'x1': float(r['x1']), 'y1': float(r['y1']), 'x2': float(r['x2']), 'y2': float(r['y2']),
                       'crop': f"/api/detections/{int(r['id'])}/crop"})
     try:
         pk=embedder.provider_key if embedder.state.loaded else None
@@ -744,7 +764,22 @@ def detections(photo_id: int):
     except Exception:
         pk=mid=None
     scan=db.entity_scan_status(photo_id, DETECTOR_MODEL, pk, mid) if pk and mid else db.entity_scan_status(photo_id)
-    return {'photo_id': photo_id, 'items': items, 'scan': scan, 'detector_model': DETECTOR_MODEL_ID, 'scan_key': DETECTOR_MODEL}
+    p=db.get_photo(photo_id)
+    return {'photo_id': photo_id, 'items': items, 'scan': scan, 'detector_model': DETECTOR_MODEL_ID, 'scan_key': DETECTOR_MODEL,
+            'width': int(p['width'] or 0) if p else 0, 'height': int(p['height'] or 0) if p else 0}
+
+@app.post('/api/photos/{photo_id}/redetect')
+def redetect_photo(photo_id: int, request: Request):
+    if request.client and request.client.host not in ('127.0.0.1','::1'):
+        raise HTTPException(403, {'code':'error.localOnly'})
+    r=db.get_photo(photo_id)
+    if not r: raise HTTPException(404, {'code':'error.photoNotFound'})
+    try:
+        found=entity_indexer.process_photo(r, force=True)
+        return {'ok':True,'photo_id':photo_id,'detections':found,'scan_key':DETECTOR_MODEL}
+    except Exception as e:
+        log_exception(f'redetect photo {photo_id}',e)
+        raise HTTPException(500, {'code':'error.redetectFailed','detail':f'{type(e).__name__}: {e}'})
 
 @app.get('/api/photos/{photo_id}/detection-diagnostics')
 def detection_diagnostics(photo_id: int):
@@ -790,10 +825,12 @@ def name_detection(detection_id: int, body: NameDetectionIn):
 @app.get('/api/photos/{photo_id}/thumbnail')
 def thumbnail(photo_id: int):
     r = db.get_photo(photo_id)
-    if not r: raise HTTPException(404)
+    if not r: raise HTTPException(404, {'code':'error.photoNotFound'})
     src = Path(r['path'])
-    if not src.exists(): raise HTTPException(404)
-    p = Path(r['thumb_path']) if r['thumb_path'] else _lazy_thumb_path(src)
+    if not src.exists(): raise HTTPException(404, {'code':'error.fileNotFound'})
+    # Always derive the cache file from current source identity. Stored thumb_path is
+    # metadata only; it must not resurrect a thumbnail generated for older contents.
+    p = _lazy_thumb_path(src)
     if not p.exists():
         try:
             with Image.open(src) as im:
@@ -806,8 +843,24 @@ def thumbnail(photo_id: int):
                 thumb.save(p, 'JPEG', quality=85, optimize=True)
                 db.set_thumbnail(photo_id, str(p), width, height, taken_at)
         except Exception as e:
-            raise HTTPException(500, f'Не удалось создать превью: {e}')
-    return FileResponse(p, media_type='image/jpeg', headers={'Cache-Control': 'public, max-age=31536000'})
+            raise HTTPException(500, {'code':'error.thumbnailFailed','detail':f'{type(e).__name__}: {e}'})
+    etag = f'"{src.stat().st_mtime_ns:x}-{src.stat().st_size:x}"'
+    return FileResponse(p, media_type='image/jpeg', headers={'Cache-Control': 'public, max-age=31536000, immutable','ETag':etag})
+
+@app.post('/api/photos/{photo_id}/thumbnail/rebuild')
+def rebuild_thumbnail(photo_id: int, request: Request):
+    if request.client and request.client.host not in ('127.0.0.1','::1'):
+        raise HTTPException(403, {'code':'error.localOnly'})
+    r=db.get_photo(photo_id)
+    if not r: raise HTTPException(404, {'code':'error.photoNotFound'})
+    src=Path(r['path'])
+    if not src.exists(): raise HTTPException(404, {'code':'error.fileNotFound'})
+    p=_lazy_thumb_path(src)
+    try:
+        if p.exists(): p.unlink()
+    except OSError: pass
+    db.clear_thumbnail(photo_id)
+    return {'ok':True,'photo_id':photo_id}
 
 
 @app.get('/api/photos/{photo_id}/original')
@@ -816,7 +869,7 @@ def original(photo_id: int):
     if not r: raise HTTPException(404)
     p = Path(r['path'])
     if not p.exists(): raise HTTPException(404)
-    return FileResponse(p)
+    return FileResponse(p, headers={'Cache-Control':'no-store'})
 
 
 @app.get('/api/system/network')
@@ -965,7 +1018,7 @@ def open_recycle_bin(request: Request):
 
 
 @app.post('/api/window/viewer/{photo_id}')
-def open_viewer_window(photo_id: int, request: Request, tab: str = 'info'):
+def open_viewer_window(photo_id: int, request: Request, tab: str = 'info', ctx: str = 'single', ids: str = ''):
     if request.client and request.client.host not in ('127.0.0.1', '::1'):
         raise HTTPException(403, 'Открытие окна доступно только локально')
     if not db.get_photo(photo_id):
@@ -982,7 +1035,9 @@ def open_viewer_window(photo_id: int, request: Request, tab: str = 'info'):
     base = str(request.base_url).rstrip('/')
     profile = str((BASE.parent / '.browser-profile').resolve())
     safe_tab = tab if tab in ('info','objects','similar','duplicates') else 'info'
-    url = f'{base}/viewer?photo={int(photo_id)}&tab={safe_tab}&v={APP_VERSION}'
+    safe_ctx = ctx if ctx in ('main','similar','duplicates','single') else 'single'
+    clean_ids = ','.join(str(int(x)) for x in ids.split(',') if x.strip().isdigit())[:5000]
+    url = f'{base}/viewer?photo={int(photo_id)}&tab={safe_tab}&ctx={safe_ctx}&ids={clean_ids}&v={APP_VERSION}'
     subprocess.Popen([browser, f'--app={url}', f'--user-data-dir={profile}', '--no-first-run'])
     return {'ok': True}
 
