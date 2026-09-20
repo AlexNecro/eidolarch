@@ -33,14 +33,14 @@ Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, 
 - Duplicate count badge stays anchored in the top-left and acts as the duplicate action; hover actions no longer replace or reorder it.
 - Duplicate path preview is requested only when hovering the duplicate badge, rather than on every tile hover.
 
-## 2.2.13 entity search / duplicate UI
+## 2.2.14 entity search / duplicate UI
 - `@name` now filters by named entities instead of falling through to semantic search.
 - Search autocomplete suggests existing named entities after `@`.
 - Duplicate hover action overlays the duplicate badge position.
 - Content/list view shows the current file path prominently and up to three duplicate paths beneath it.
 - Missing capture date in Details is shown as an explicit localized label instead of a bare dash.
 
-## 2.2.13 UI polish
+## 2.2.14 UI polish
 - Fixed view-switch active state and Content duplicate-path hydration.
 - Added Favorites as a first-class main mode.
 - Removed redundant tile Info action; normal click already opens Info.
@@ -48,3 +48,11 @@ Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, 
 - Standalone viewer uses Eidolarch tooltips instead of browser-native title popups.
 - Relationship graph moved to its own app window; hovering a node highlights its incident edges.
 - Restored the detailed Help emblem.
+
+## 2.2.14 Cards and UI polish
+- Reworked Content into Cards: preview + metadata + duplicate context panel.
+- Cards show duplicate thumbnails, paths, match type and size when available.
+- Grid/Tiles stays image-dense; Details/Table is intentionally deferred.
+- Removed the large viewer-stage shortcut tooltip that covered the zoom toolbar.
+- Relationship graph edges are thinner and hover de-emphasis is softer.
+- Fixed collection-selector regressions that prevented Cards duplicate hydration and view-button active state.
