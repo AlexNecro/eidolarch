@@ -237,6 +237,10 @@ def set_thumbnail(photo_id,thumb_path,width=None,height=None,taken_at=None):
     c=conn(); c.execute('UPDATE photos SET thumb_path=?,width=COALESCE(?,width),height=COALESCE(?,height),taken_at=COALESCE(?,taken_at) WHERE id=?',
         (str(thumb_path),width,height,taken_at,int(photo_id))); c.commit()
 
+
+def clear_thumbnail(photo_id):
+    c=conn(); c.execute('UPDATE photos SET thumb_path=NULL WHERE id=?',(int(photo_id),)); c.commit()
+
 def set_ai_error(photo_id,msg): c=conn(); c.execute('UPDATE photos SET ai_error=? WHERE id=?',(msg,photo_id)); c.commit()
 def has_embedding(photo_id,provider_key,model): return conn().execute('SELECT 1 FROM embeddings WHERE photo_id=? AND provider_key=? AND model=?',(photo_id,provider_key,model)).fetchone() is not None
 def set_embedding(photo_id,provider_key,model,vector):
@@ -310,7 +314,7 @@ def count_ai_errors(): return int(conn().execute('SELECT COUNT(*) c FROM photos 
 def last_ai_error():
     r=conn().execute('SELECT ai_error FROM photos WHERE ai_error IS NOT NULL ORDER BY indexed_at DESC,id DESC LIMIT 1').fetchone(); return r['ai_error'] if r else None
 def count_embeddings(provider_key,model): return int(conn().execute('SELECT COUNT(*) c FROM embeddings e JOIN photos p ON p.id=e.photo_id WHERE e.provider_key=? AND e.model=? AND p.error IS NULL',(provider_key,model)).fetchone()['c'])
-def load_embeddings(provider_key,model): return conn().execute('''SELECT p.id,p.name,p.path,p.size,p.taken_at,p.indexed_at,p.width,p.height,p.thumb_path,e.dim,e.vector FROM embeddings e JOIN photos p ON p.id=e.photo_id WHERE e.provider_key=? AND e.model=? AND p.error IS NULL ORDER BY p.id''',(provider_key,model)).fetchall()
+def load_embeddings(provider_key,model): return conn().execute('''SELECT p.id,p.name,p.path,p.size,p.mtime_ns,p.taken_at,p.indexed_at,p.width,p.height,p.thumb_path,e.dim,e.vector FROM embeddings e JOIN photos p ON p.id=e.photo_id WHERE e.provider_key=? AND e.model=? AND p.error IS NULL ORDER BY p.id''',(provider_key,model)).fetchall()
 def embedding_sets(): return [dict(r) for r in conn().execute('SELECT provider_key,model,COUNT(*) count,MAX(dim) dim FROM embeddings GROUP BY provider_key,model ORDER BY count DESC')]
 
 # ---- duplicate and entity indexes -------------------------------------------------
