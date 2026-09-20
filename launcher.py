@@ -11,7 +11,7 @@ import urllib.request
 HOST = os.environ.get("PHOTOMIND_HOST", "0.0.0.0")
 PORT = int(os.environ.get("PHOTOMIND_PORT", "8765"))
 LOCAL_URL = f"http://127.0.0.1:{PORT}"
-APP_VERSION = "2.2.13"
+APP_VERSION = "2.2.14"
 
 
 def wait_ready(timeout: float = 40.0) -> bool:
