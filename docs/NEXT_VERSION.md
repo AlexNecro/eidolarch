@@ -35,6 +35,14 @@
 - Hover toolbar reveals only the other actions to the right of the persistent duplicate badge.
 - Duplicate path preview appears only when hovering the duplicate badge, reducing accidental obstruction.
 
+## Completed in 2.2.12
+
+- `@name` exact named-entity search.
+- Entity autocomplete after typing `@`.
+- Duplicate hover action reuses the duplicate badge position instead of shifting the target.
+- Content/list view exposes several duplicate paths directly under the current path.
+- Details no longer shows an unexplained bare dash for a missing capture date.
+
 ## Critical fixes still open
 
 ### 1. Photo identity / wrong-photo regression
