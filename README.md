@@ -22,31 +22,27 @@ Current version: **2.2.14**.
 
 ## Current project focus
 
-The project is still experimental. The current stabilization priorities are:
+The project is still experimental. Current priorities:
 
-1. **UI consistency**
-   - replace native browser tooltips with styled localized Eidolarch tooltips;
-   - keep duplicate badges/actions spatially stable on hover;
-   - clean up icon/button behavior.
+1. **Cards / interface polish**
+   - Tiles = dense visual browsing;
+   - Cards = large preview + metadata + contextual right panel;
+   - Table is intentionally deferred until the first two modes are clearly distinct.
 
-2. **Duplicate workflow**
-   - real duplicate groups instead of one stretched row per file;
-   - visible paths, exact/near type, size, dimensions and path priority;
-   - recommended keeper and folder/package grouping;
-   - safe Recycle Bin workflow.
+2. **Duplicate package workflow**
+   - detect duplicated folder/branch sets instead of presenting only file pairs;
+   - package matrix: locations as columns, logical photos as rows, visible gaps;
+   - overlap/unique counts, reclaimable size and safe package-level cleanup;
+   - Recycle Bin only, with immediate UI/database refresh.
 
 3. **Named entities**
-   - remove duplicate detections of the same animal;
-   - suppress unusable person fragments such as isolated hands/legs;
-   - preserve unsaved text in neighboring name fields;
-   - add explicit saved/dirty state;
-   - later support entity search such as `@Тера`, `@Мойва`, `@Алексей`.
+   - `@name` exact entity search and autocomplete are already implemented;
+   - next: duplicate-animal suppression, SigLIP crop classification for dog/cat, face gating for people and candidate review.
 
-4. **Details view**
-   - real table/details mode with sticky headers;
-   - sortable columns;
-   - useful metadata visible without hover;
-   - preserve the current photo while switching view modes.
+4. **Product packaging**
+   - hide the local backend in normal use;
+   - relaunch the client against an already-running backend;
+   - keep visible console mode for development only.
 
 The detailed active backlog is in [`docs/NEXT_VERSION.md`](docs/NEXT_VERSION.md).
 
@@ -64,13 +60,13 @@ On first launch Eidolarch creates `.venv`, installs Python if required, installs
 
 ## Search model
 
-Current semantic search treats plain text as a visual/text embedding query. The planned unified query language is:
+Current search supports a mixed query language:
 
-- `@name` — a specific named person or pet;
-- `#tag` — an exact tag;
-- plain text — broad search across semantic content and, later, OCR / filename / path / metadata.
+- `@name` — exact named person/pet entity filter (implemented);
+- `#tag` — exact tag/filter;
+- plain text — semantic image search today, later expanded with OCR / filename / path / metadata.
 
-Example future queries:
+Examples:
 
 - `@Тера на диване`
 - `@Алексей @Тера`
@@ -131,7 +127,7 @@ Release notes:
 - Similar-photo ranking and performance are still being tuned.
 - Duplicate cleanup UI is not yet the intended grouped workflow.
 - Semantic search can return weak results for ambiguous short queries.
-- OCR and `@entity` search are not implemented yet.
+- OCR is not implemented yet; `@entity` search is implemented but the entity-recognition pipeline is still experimental.
 - Some UI strings/tooltips still need localization cleanup.
 
 ## Safety of file operations
