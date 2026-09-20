@@ -1,4 +1,4 @@
-# Eidolarch 2.3 — Duplicate workspace
+# Eidolarch 2.2.x — Stabilization before 2.3
 
 ## Completed in 2.2.10
 
