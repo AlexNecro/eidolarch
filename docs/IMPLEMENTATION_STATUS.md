@@ -17,3 +17,12 @@
 
 ## 2.2.1
 Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, parent navigation, sticky controls, Grid/Content/Details views, settings tabs, public URL for network QR, PWA shell, mobile viewer panel default-hidden, scroll-to-top and first duplicate path-priority scoring.
+
+
+## 2.2.10 stabilization
+- Thumbnail cache keys now include path + mtime_ns + size; browser thumbnail URLs also carry the file version.
+- Viewer original responses are no-store and image requests are request-scoped to reduce stale/race behavior.
+- Standalone viewer carries a navigation context; Similar/Duplicate result clicks open a child viewer instead of replacing the parent.
+- Object panel supports re-detect-and-save, preserves manual entity assignments when new boxes strongly overlap, and can highlight detector boxes on the image.
+- Duplicate viewer separates the current file from actual duplicates and does not count the current file as its own duplicate.
+- Similar visual signatures are cached by physical file version; reference photo / empty-result UI is explicit.
