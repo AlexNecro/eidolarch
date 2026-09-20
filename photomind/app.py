@@ -41,7 +41,7 @@ _FS_STATS_CACHE = {}
 _FS_STATS_LOCK = threading.Lock()
 _FS_STATS_TTL = 120.0
 db.init_db()
-APP_VERSION = '2.2.12'
+APP_VERSION = '2.2.13'
 app = FastAPI(title='Eidolarch', version=APP_VERSION)
 
 @app.middleware('http')
@@ -1091,6 +1091,19 @@ def open_help_window(request: Request, lang: str = 'ru'):
     subprocess.Popen([browser,f'--app={url}',f'--user-data-dir={profile}','--no-first-run'])
     return {'ok':True}
 
+@app.post('/api/window/graph')
+def open_graph_window(request: Request):
+    if request.client and request.client.host not in ('127.0.0.1','::1'):
+        raise HTTPException(403, {'code':'error.localOnly'})
+    candidates = [os.path.expandvars(r'%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe'), os.path.expandvars(r'%ProgramFiles%\Microsoft\Edge\Application\msedge.exe'), os.path.expandvars(r'%LOCALAPPDATA%\Microsoft\Edge\Application\msedge.exe'), os.path.expandvars(r'%ProgramFiles%\Google\Chrome\Application\chrome.exe')]
+    browser = next((p for p in candidates if p and os.path.isfile(p)), None) or shutil.which('msedge') or shutil.which('chrome')
+    if not browser: raise HTTPException(500, {'code':'error.browserNotFound'})
+    base=str(request.base_url).rstrip('/')
+    profile=str((BASE.parent/'.browser-profile').resolve())
+    url=f'{base}/graph?v={APP_VERSION}'
+    subprocess.Popen([browser,f'--app={url}',f'--user-data-dir={profile}','--no-first-run'])
+    return {'ok':True}
+
 @app.post('/api/window/settings')
 def open_settings_window(request: Request):
     if request.client and request.client.host not in ('127.0.0.1','::1'):
@@ -1128,6 +1141,10 @@ app.mount('/assets', StaticFiles(directory=STATIC), name='assets')
 
 @app.get('/favicon.ico', include_in_schema=False)
 def favicon(): return FileResponse(STATIC/'icons'/'app.ico', media_type='image/x-icon', headers={'Cache-Control':'public, max-age=86400'})
+
+@app.get('/graph')
+def graph_page():
+    return FileResponse(STATIC / 'graph.html', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
 
 @app.get('/viewer')
 def viewer_page(): return FileResponse(STATIC / 'viewer.html', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
