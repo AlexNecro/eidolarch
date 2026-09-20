@@ -246,6 +246,6 @@
   "viewer.duplicateResults": "Duplicates",
   "error.thumbnailFailed": "Could not build thumbnail",
   "error.redetectFailed": "Object re-detection failed",
-  "hint.searchLanguage": "Search syntax\\nPlain text — current semantic image search\\n@name — named person/pet (planned)\\n#tag — exact tag/filter\\nExamples: @Tera on sofa · @Alex #cottage · thank-you letter 1C",
+  "hint.searchLanguage": "Search syntax\nPlain text — current semantic image search\n@name — named person/pet (planned)\n#tag — exact tag/filter\nExamples: @Tera on sofa · @Alex #cottage · thank-you letter 1C",
   "hint.uiTooltip": "Interface hint"
 }
