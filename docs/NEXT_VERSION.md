@@ -1,5 +1,28 @@
 # Eidolarch 2.2.x — Stabilization before 2.3
 
+## 2.2.14 — Cards and UI polish
+
+Target:
+- make the three browse modes meaningfully different;
+- replace stretched Content rows with Cards;
+- surface duplicate context directly in Cards;
+- reduce intrusive tooltips;
+- make the relationship graph visually lighter and more responsive.
+
+Implemented:
+- Content is now **Cards**: large preview + left metadata panel + right context panel.
+- The right context panel shows duplicate copies with thumbnails, paths and match metadata.
+- Grid/Tiles remains the dense visual browsing mode.
+- Details/Table is intentionally left mostly unchanged for now.
+- The large viewer-stage shortcut tooltip is removed; only control-specific tooltips remain.
+- Relationship-graph edges are thinner and hover de-emphasis is softer.
+
+Deferred from 2.2.14:
+- product launcher/backend lifecycle;
+- duplicate-package workspace;
+- entity detector cleanup and pet/face classification refinements.
+
+
 ## Completed in 2.2.10
 
 - Viewer/photo identity hardening:
@@ -63,13 +86,25 @@
 - Show explicit `saving / saved / unsaved changes` state.
 - Redraw the server-confirmed entity name after save.
 
-### 4. Duplicate workspace
-- Render actual duplicate groups instead of one very wide row per file.
-- Show all copy locations, size, dimensions, date, exact/near type and path-priority status directly in the group.
-- Group/compare copies by folder/package where useful.
-- Current file participates in keeper ranking but is never displayed/counts as its own duplicate.
-- Database/results refresh immediately after file removal.
-- Eidolarch may recommend; it must not silently remove originals or choose irreversible actions.
+### 4. Duplicate package workspace
+The primary unit should be a **package of duplicated folder/branch content**, not one pair per file.
+
+Example: ten logical photos duplicated between folder A and folder B should appear as one package with two columns/lanes of ten matching items, not ten unrelated groups of two.
+
+Planned behavior:
+- Build low-level logical duplicate sets first, then aggregate them by folder/branch overlap.
+- Display one package as a matrix:
+  - columns = duplicate locations / folders / branches;
+  - rows = logical photos;
+  - gaps explicitly show files missing from one copy.
+- Support 2, 3 or more duplicate locations in one package.
+- Show overlap metrics such as `997 common / 1000 total`, unique-only counts and estimated reclaimable space.
+- Folder/branch actions delete only files that are confirmed duplicates elsewhere; unique files are never silently removed.
+- If a two-copy row loses one copy after deletion, it disappears from Duplicate workspace immediately because it is no longer duplicated.
+- If three copies become two, the row remains with a visible gap in the removed location.
+- Allow a package-level action such as “move 997 confirmed duplicates from Camera Roll to Recycle Bin”.
+- Apply path-priority rules to recommend a preferred location, but recommendations remain reversible/user-confirmed.
+- Refresh database and UI immediately after every file operation.
 
 ### 5. Details view / duplicate hover UX
 - The current large hover overlay obscures the row being inspected; remove it from Details mode or replace it with a compact non-covering tooltip/popover.
@@ -109,3 +144,20 @@
 - User-visible backend/frontend strings should be localization IDs.
 - Missing keys fall back to English with a development warning.
 - Never expose raw localization identifiers to the user.
+
+
+### 11. Product-mode launcher and backend lifecycle
+- Ordinary users should launch one Eidolarch application and never need to know that a local HTTP backend exists.
+- If the backend is already running, launching Eidolarch should simply open a new main window.
+- If it is not running, the launcher starts it hidden, waits for health, then opens the client.
+- Closing the client must not leave the user unable to reopen it.
+- Default product behavior: when the last UI window closes, keep the backend alive briefly and then stop it unless background indexing/tray mode is explicitly enabled.
+- Keep `run_console.bat` as the developer/debug path with visible logs.
+- Later package this into a real `Eidolarch.exe`/installer rather than exposing Python/Uvicorn.
+
+### 12. Entity classifier refinement
+- YOLOS remains useful for proposing object boxes but is not reliable enough as the final cat/dog identity classifier.
+- For animal detections, classify the crop with the stronger SigLIP model (`dog` vs `cat`) before treating it as a pet candidate.
+- For people, separate generic person-presence from identity candidates; require a usable face before offering naming.
+- Merge duplicate animal detections more aggressively using IoU/containment/center similarity.
+- Preserve confirmed entity names and unsaved UI drafts across re-detection.
