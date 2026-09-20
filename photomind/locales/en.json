@@ -1,6 +1,6 @@
 {
   "app.title": "Eidolarch",
-  "app.version": "v2.2.9",
+  "app.version": "v2.2.10",
   "search.placeholder": "Search photos…",
   "search.find": "Search",
   "search.clear": "Clear search",
@@ -236,5 +236,14 @@
   "viewer.copyDiagnostics": "Copy diagnostics",
   "error.similarFailed": "Failed to find similar photos",
   "onboarding.addAnother": "Add another folder?",
-  "onboarding.done": "Done"
+  "onboarding.done": "Done",
+  "objects.redetectSave": "Re-detect and save",
+  "objects.redetectRunning": "Re-detecting and saving…",
+  "objects.redetectDone": "Detection saved",
+  "viewer.referencePhoto": "Reference photo",
+  "viewer.similarResults": "Similar photos",
+  "viewer.currentFile": "Current file",
+  "viewer.duplicateResults": "Duplicates",
+  "error.thumbnailFailed": "Could not build thumbnail",
+  "error.redetectFailed": "Object re-detection failed"
 }
