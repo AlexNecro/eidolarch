@@ -202,7 +202,22 @@ if (-not (Test-TorchStack)) {
 }
 
 Write-Host '[Eidolarch] Runtime check:'
-& $venvPy -c 'import torch, torchvision; from transformers import AutoImageProcessor; print("torch", torch.__version__); print("torchvision", torchvision.__version__); print("cuda", torch.cuda.is_available()); print("gpu", torch.cuda.get_device_name(0) if torch.cuda.is_available() else None); print("AutoImageProcessor OK")' 
+# Avoid quoted string literals in the -c payload. Windows PowerShell 5/native
+# argument quoting may otherwise strip embedded quotes before python.exe sees them.
+& $venvPy -c 'import torch, torchvision; from transformers import AutoImageProcessor; print(torch.__name__, torch.__version__); print(torchvision.__name__, torchvision.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else None); print(AutoImageProcessor.__name__)'
+if ($LASTEXITCODE -ne 0) { throw "Runtime check failed with exit code $LASTEXITCODE" }
+
+$requiredSourceFiles = @(
+    'photomind\__init__.py',
+    'photomind\app.py',
+    'photomind\config.py',
+    'photomind\db.py',
+    'photomind\static\index.html'
+)
+$missingSourceFiles = @($requiredSourceFiles | Where-Object { -not (Test-Path $_) })
+if ($missingSourceFiles.Count -gt 0) {
+    throw ("Eidolarch source tree is incomplete. Missing: " + ($missingSourceFiles -join ', ') + ". If this is a Git working copy, run: git restore photomind")
+}
 
 & $venvPy launcher.py
 exit $LASTEXITCODE
