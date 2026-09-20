@@ -4,13 +4,15 @@ Eidolarch is a local-first photo triage and curation tool. GPU acceleration is o
 
 ## 2.2 — Foundation and stabilization
 
-### 2.2.4 — current stabilization release
-- Eidolarch branding and application icons for Windows, PWA and in-app header.
-- AI-search crash fixed when vector-search rows lack optional metadata.
-- Error-report ZIP from Diagnostics with runtime/index/model state and recent logs, without photos, database or API keys.
-- Duplicate-mode sorting fixed to use the selected order on the backend.
-- Cache/version synchronization tightened across launcher, frontend and service worker.
-- Git-safe `.gitignore` suitable for publishing directly from a working installation.
+### 2.2.14 — Cards and UI polish
+- Distinct browse modes:
+  - **Tiles** — dense visual browsing;
+  - **Cards** — large preview + metadata + contextual right panel;
+  - **Table** — compact metadata mode, intentionally deferred for deeper work later.
+- Cards expose duplicate copies directly with thumbnail/path/match information.
+- Viewer tooltips are control-specific; no large tooltip covers the zoom toolbar.
+- Relationship graph uses lighter/thinner interaction styling.
+- Favorites, entity search (`@name`), separate Help/Viewer/Settings/Graph windows and cross-window locale/theme propagation are part of the stabilized shell.
 
 ### Foundation already present
 - PhotoMind → Eidolarch data compatibility.
@@ -19,59 +21,72 @@ Eidolarch is a local-first photo triage and curation tool. GPU acceleration is o
 - Viewer zoom, pan, 100%, fit and fullscreen.
 - QR-first LAN access and optional custom public URL.
 - Folder picker, first-run onboarding, recursive folder counts and Explorer-style `[..]`.
-- Grid / Content / Details views and floating scroll-to-top.
-- Settings tabs and diagnostics.
+- Settings tabs, diagnostics, Favorites, named-entity search and PWA shell.
 
-## 2.3 — Duplicate workspace (next version)
+## 2.3 — Duplicate package workspace
 
-Goal: turn duplicate detection into a safe decision workflow rather than a red border and a count.
+Goal: model how duplicate archives actually occur: whole folders or branches are copied, moved and re-imported.
 
-- Show duplicate locations directly in Duplicate mode: current path + first 2–3 duplicate paths + `… more N`.
-- Expand a duplicate group to the full list with path, file size, dimensions, capture date and metadata differences.
-- Apply configurable path-priority rules to recommend which copy to keep, including rules for arbitrary subfolders, not only library roots.
-- Combine path priority with technical evidence: original resolution, EXIF retention, file size/encoding and manual rating.
-- Clearly explain `recommended to keep` and `candidate for removal`; never delete automatically.
-- Package/folder comparison: detect when the same duplicate set exists in organized folders and in import dumps such as `Photo\...` versus `Camera Roll\...`.
-- Bulk review and Recycle Bin workflow with confirmation and post-delete database synchronization.
-- Ensure sorting, Grid/Content/Details and central-photo preservation work identically inside Duplicate mode.
+- Low-level duplicate identity remains file-based (exact SHA-256 and near/perceptual evidence).
+- Aggregate those identities into **duplicate packages** based on folder/branch overlap.
+- Package UI is a matrix:
+  - columns = duplicate locations/folder branches;
+  - rows = logical photos;
+  - missing cells = files absent from that location.
+- Example: 10 photos in folder A and the same 10 in folder B become one package with 2 columns × 10 rows, not 10 pair groups.
+- Support packages with 3+ locations.
+- Display common count, unique count per location, overlap percentage and reclaimable size.
+- Group-level cleanup removes only confirmed redundant files; unique files are preserved.
+- Path-priority rules recommend which location to keep.
+- Recycle Bin only; no silent destructive cleanup.
+- UI/database update immediately as duplicate relationships disappear after deletion.
 
-## 2.4 — Similarity workspace
+## 2.4 — Entities: people and pets
+- Improve object proposals and identity workflow before scaling automation.
+- Animals: detector proposes boxes; SigLIP classifies crop as dog/cat and later identifies individual pets via prototypes/candidates.
+- People: person detection is not enough for naming; require usable face → face embedding → candidate/cluster.
+- Merge duplicate detections of one animal.
+- Candidate review: confirm/reject before aggressive propagation.
+- Named entities such as Tera, Nyusha, Moyva and people are first-class search filters.
+
+## 2.5 — Similarity workspace
 - Sort a selection/folder by similarity to a reference image.
 - Cluster/group visually similar photos.
 - Manual triage labels: Keep / Reject / Neutral.
 - Filtering and bulk actions by triage label.
 
-## 2.5 — Series
+## 2.6 — Series
 - Detect shooting series from time proximity + perceptual/embedding similarity.
 - Present a series as one review unit.
 - Cheap CPU quality metrics: sharpness, motion blur, exposure, resolution/noise.
 
-## 2.6 — Best-shot curation
+## 2.7 — Best-shot curation
 - “These 10 are very similar; keep 2” workflow.
-- Ranking combines technical quality with diversity so selected frames are not near-identical.
+- Ranking combines technical quality with diversity.
 - Explanations such as sharper, eyes open, different pose, better exposure.
 - AI proposes only; deletion always requires user confirmation.
 
-## 2.7 — People
-- Face detection → face embeddings → clustering → naming.
-- Named people are first-class entities, not merely tags.
+## 2.8 — Unified search + OCR
+- Combine semantic image search, named entities, EXIF/time, folders, tags, OCR and user triage.
+- Plain text searches semantic/OCR/filename/path/metadata.
+- `@name` is an exact named entity.
+- `#tag` is an exact tag.
+- OCR indexes documents, screenshots, signs and photographed text.
 
-## 2.8 — Pets
-- Dog/cat detection → crop embeddings → per-pet prototypes.
-- Interactive identification for pets such as Tera and Nyusha; uncertain matches require confirmation.
-- Multiple prototypes per animal to handle age, pose and lighting.
-
-## 2.9 — Unified search
-- Combine semantic image search, named entities, EXIF/time, folders, tags and user triage.
-- Queries such as “Nyusha in the car”, “Tera at the dacha”, “Vladislav with the dog”.
+## 2.9 — Product packaging
+- One user-facing Eidolarch launcher/application.
+- Hidden local backend; no server console in normal use.
+- Relaunch opens a window against an already-running backend.
+- Optional tray/background indexing mode.
+- Keep visible console mode only for development/diagnostics.
+- Installer/updater based on GitHub Releases; Git is not required on end-user machines.
 
 ## 3.0 — Curator
-- Unified cleanup dashboard: duplicates, near-duplicates, similar series, low-quality frames and estimated reclaimable space.
-- Guided group-by-group review instead of unsafe one-click cleanup.
-- Highlights: automatically surface technically strong and diverse photos/series, locally by default.
+- Unified cleanup dashboard: duplicate packages, near-duplicates, similar series, low-quality frames and estimated reclaimable space.
+- Guided group-by-group review.
+- Highlights: technically strong and diverse photos/series, locally by default.
 
 ## Later
-- On-demand VLM reasoning for a selected series, optionally remote.
-- OCR.
-- GPS map in the viewer with privacy-preserving lazy loading and links to Google Maps / Yandex Maps / 2GIS.
+- On-demand VLM reasoning for selected groups.
+- GPS map with privacy-preserving lazy loading.
 - Event grouping and richer relationship graph.
