@@ -41,7 +41,7 @@ _FS_STATS_CACHE = {}
 _FS_STATS_LOCK = threading.Lock()
 _FS_STATS_TTL = 120.0
 db.init_db()
-APP_VERSION = '2.2.13'
+APP_VERSION = '2.2.14'
 app = FastAPI(title='Eidolarch', version=APP_VERSION)
 
 @app.middleware('http')
