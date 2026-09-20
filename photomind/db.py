@@ -453,6 +453,35 @@ def list_entities():
     return [dict(r) for r in conn().execute("""SELECT e.id,e.name,e.kind,COUNT(DISTINCT d.photo_id) photo_count,COUNT(d.id) detection_count
         FROM entities e LEFT JOIN detections d ON d.entity_id=e.id GROUP BY e.id ORDER BY e.kind,e.name""")]
 
+def photo_ids_for_entities(entity_ids):
+    ids=[int(x) for x in entity_ids if x is not None]
+    if not ids:return set()
+    q=','.join('?'*len(ids))
+    rows=conn().execute(f"""SELECT d.photo_id FROM detections d
+        WHERE d.entity_id IN ({q})
+        GROUP BY d.photo_id
+        HAVING COUNT(DISTINCT d.entity_id)=?""",ids+[len(ids)]).fetchall()
+    return {int(r['photo_id']) for r in rows}
+
+def list_photos_by_ids(photo_ids, limit=200, sort='taken_desc'):
+    ids=[int(x) for x in photo_ids if x is not None]
+    if not ids:return []
+    q=','.join('?'*len(ids))
+    order={
+      'taken_desc':'COALESCE(p.taken_at,p.indexed_at) DESC,p.id DESC',
+      'taken_asc':'COALESCE(p.taken_at,p.indexed_at) ASC,p.id ASC',
+      'name_asc':'p.name COLLATE NOCASE ASC,p.id ASC',
+      'name_desc':'p.name COLLATE NOCASE DESC,p.id DESC',
+      'size_desc':'p.size DESC,p.id DESC',
+      'size_asc':'p.size ASC,p.id ASC',
+      'rating_desc':'COALESCE(m.rating,0) DESC,COALESCE(p.taken_at,p.indexed_at) DESC,p.id DESC',
+      'added_desc':'p.indexed_at DESC,p.id DESC'
+    }
+    return conn().execute(f"""SELECT p.*,COALESCE(m.favorite,0) favorite,COALESCE(m.rating,0) rating,m.color_label,m.comment
+        FROM photos p LEFT JOIN photo_user_meta m ON m.photo_id=p.id
+        WHERE p.error IS NULL AND p.id IN ({q})
+        ORDER BY {order.get(sort,order['taken_desc'])} LIMIT ?""",ids+[int(limit)]).fetchall()
+
 def entity_index_stats(detector_model,provider_key,embedding_model):
     c=conn()
     scans=int(c.execute("SELECT COUNT(*) c FROM entity_scans WHERE detector_model=? AND provider_key=? AND embedding_model=? AND status='done'",(detector_model,provider_key,embedding_model)).fetchone()['c'])
