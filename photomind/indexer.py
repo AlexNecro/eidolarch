@@ -104,7 +104,14 @@ class Indexer:
                 yield p
 
     def _thumb_path(self, path):
-        h = hashlib.sha1(str(path).encode('utf-8', 'ignore')).hexdigest()
+        # Thumbnail identity follows the physical file version, not just its path.
+        # This prevents a replaced file from inheriting a stale thumbnail forever.
+        try:
+            st = Path(path).stat()
+            identity = f"{Path(path)}|{int(st.st_mtime_ns)}|{int(st.st_size)}"
+        except OSError:
+            identity = str(path)
+        h = hashlib.sha1(identity.encode('utf-8', 'ignore')).hexdigest()
         d = THUMB_DIR / h[:2]
         d.mkdir(parents=True, exist_ok=True)
         return d / f'{h}.jpg'
