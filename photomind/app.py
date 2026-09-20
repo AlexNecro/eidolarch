@@ -41,7 +41,7 @@ _FS_STATS_CACHE = {}
 _FS_STATS_LOCK = threading.Lock()
 _FS_STATS_TTL = 120.0
 db.init_db()
-APP_VERSION = '2.2.11'
+APP_VERSION = '2.2.12'
 app = FastAPI(title='Eidolarch', version=APP_VERSION)
 
 @app.middleware('http')
@@ -609,14 +609,49 @@ def gallery(limit: int = Query(120, ge=1, le=300), offset: int = Query(0, ge=0),
 @app.get('/api/search')
 def search(q: str = Query(min_length=1), limit: int = Query(80, ge=1, le=300), folder_id: int | None = None, tags: str = '', rel: str = '', sort: str = 'relevance_desc'):
     try:
-        embedder.ensure_loaded(); indexed = db.count_embeddings(embedder.provider_key, embedder.model_id)
-        if indexed == 0: raise HTTPException(409, 'Для выбранной модели ещё нет AI-индекса. Запустите индексирование.')
+        import re
+        query=q.strip()
         tag_ids = [int(x) for x in tags.split(',') if x.strip().isdigit()]
         prefix = _path_prefix_for_filter(folder_id, rel) if rel else None
-        allowed = db.photo_ids_for_filters(folder_id, tag_ids, embedder.provider_key, embedder.model_id, path_prefix=prefix) if (folder_id or tag_ids or prefix) else None
+
+        # @name is an exact named-entity filter. Multiple @tokens use AND semantics.
+        # Keep the remaining plain text as an optional semantic query.
+        tokens=re.findall(r'(?<!\\S)@([^\\s@#]+)', query)
+        entities=db.list_entities()
+        by_name={str(e['name']).casefold():e for e in entities}
+        entity_ids=[]; unknown=[]
+        for token in tokens:
+            ent=by_name.get(token.casefold())
+            if ent: entity_ids.append(int(ent['id']))
+            else: unknown.append(token)
+        semantic_query=re.sub(r'(?<!\\S)@[^\\s@#]+',' ',query)
+        semantic_query=' '.join(semantic_query.split())
+
+        pk = embedder.provider_key if embedder.state.loaded else None
+        model = embedder.model_id if embedder.state.loaded else None
+        scope_ids=db.photo_ids_for_filters(folder_id, tag_ids, pk, model, path_prefix=prefix) if (folder_id or tag_ids or prefix) else None
+        entity_photo_ids=db.photo_ids_for_entities(entity_ids) if entity_ids else None
+
+        if unknown:
+            return {'query':q,'mode':'entity','unknown_entities':unknown,'indexed':db.count_embeddings(pk,model) if pk and model else 0,'indexing':bool(indexer.status.running),'model':model,'items':[]}
+
+        allowed=None
+        if scope_ids is not None: allowed=set(scope_ids)
+        if entity_photo_ids is not None: allowed=set(entity_photo_ids) if allowed is None else allowed.intersection(entity_photo_ids)
+
+        # Pure @entity query does not need the embedding model at all.
+        if entity_ids and not semantic_query:
+            rows=db.list_photos_by_ids(allowed or set(), limit=limit, sort=sort if sort!='relevance_desc' else 'taken_desc')
+            return {'query':q,'mode':'entity','entities':entity_ids,'indexed':db.count_embeddings(pk,model) if pk and model else 0,'indexing':bool(indexer.status.running),'model':model,'items':photos_json(rows)}
+
+        embedder.ensure_loaded(); indexed = db.count_embeddings(embedder.provider_key, embedder.model_id)
+        if indexed == 0: raise HTTPException(409, 'Для выбранной модели ещё нет AI-индекса. Запустите индексирование.')
+        if allowed is not None and not allowed:
+            return {'query':q,'mode':'entity+semantic' if entity_ids else 'semantic','entities':entity_ids,'indexed':indexed,'indexing':bool(indexer.status.running),'model':embedder.model_id,'items':[]}
+
         # Fetch a wider relevance shortlist when a non-relevance ordering is requested,
         # then order the visible result set explicitly.
-        raw = vector_index.search(q, max(limit, 300 if sort!='relevance_desc' else limit), allowed)
+        raw = vector_index.search(semantic_query or query, max(limit, 300 if sort!='relevance_desc' else limit), allowed)
         items=photos_json(raw)
         def sk(x):
             if sort=='taken_desc' or sort=='taken_asc': return x.get('taken_at') or ''
@@ -628,7 +663,7 @@ def search(q: str = Query(min_length=1), limit: int = Query(80, ge=1, le=300), f
         rev=sort in ('relevance_desc','taken_desc','name_desc','size_desc','rating_desc','added_desc')
         if sort!='relevance_desc': items=sorted(items,key=sk,reverse=rev)
         items=items[:limit]
-        return {'query': q, 'indexed': indexed, 'indexing': bool(indexer.status.running), 'model': embedder.model_id, 'items': items}
+        return {'query': q, 'mode':'entity+semantic' if entity_ids else 'semantic', 'entities':entity_ids, 'indexed': indexed, 'indexing': bool(indexer.status.running), 'model': embedder.model_id, 'items': items}
     except HTTPException:
         raise
     except Exception as e:
