@@ -15,3 +15,5 @@ async function render(){const c=$('#settingsContent');c.innerHTML='<div class="v
  else {const d=await api('/api/diagnostics?lines=120');c.innerHTML=`<section class="settings-section"><h3>${esc(t('settings.diagnostics'))}</h3><pre class="diagnostics-pre">${esc(JSON.stringify(d,null,2))}</pre><div class="actions"><button id="report">${esc(t('settings.downloadErrorReport'))}</button></div></section>`;$('#report').onclick=()=>location.href='/api/diagnostics/report?ts='+Date.now()}
 }catch(e){c.innerHTML=`<div class="errorbox">${esc(e.message)}</div>`}}
 (async()=>{applyTheme();await locales();$$('[data-settings-tab]').forEach(b=>b.onclick=()=>{active=b.dataset.settingsTab;$$('[data-settings-tab]').forEach(x=>x.classList.toggle('active',x===b));render()});render()})();
+
+addEventListener('storage',async e=>{if(e.key==='eidolarch.language'){await locales();await render()}else if(e.key==='eidolarch.theme'){applyTheme()}});
