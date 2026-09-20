@@ -35,7 +35,7 @@
 - Hover toolbar reveals only the other actions to the right of the persistent duplicate badge.
 - Duplicate path preview appears only when hovering the duplicate badge, reducing accidental obstruction.
 
-## Completed in 2.2.12
+## Completed in 2.2.13
 
 - `@name` exact named-entity search.
 - Entity autocomplete after typing `@`.
