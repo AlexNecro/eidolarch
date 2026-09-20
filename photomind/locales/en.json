@@ -1,6 +1,6 @@
 {
   "app.title": "Eidolarch",
-  "app.version": "v2.2.13",
+  "app.version": "v2.2.14",
   "search.placeholder": "Search photos…",
   "search.find": "Search",
   "search.clear": "Clear search",
@@ -130,7 +130,7 @@
   "hint.reset": "Return to library root and clear search, folder and tags",
   "hint.newFolder": "Create a subfolder in the current folder",
   "hint.tagPanel": "Collapse or expand the tag panel",
-  "hint.grid": "Grid",
+  "hint.grid": "Tiles: maximum photos, minimum text",
   "hint.large": "Large tiles",
   "hint.list": "List",
   "hint.timeline": "Timeline",
@@ -210,10 +210,10 @@
   "settings.installApp": "Install as app",
   "settings.installAppHint": "On a phone Eidolarch can run from its own PWA shortcut. If the browser does not offer installation, use “Add to Home Screen”.",
   "settings.installManual": "Use the browser menu → “Install app” or “Add to Home Screen”.",
-  "hint.content": "Content: large preview, path and extra metadata",
-  "hint.details": "Details: compact metadata rows",
-  "view.content": "Content",
-  "view.details": "Details",
+  "hint.content": "Cards: large preview, metadata and context",
+  "hint.details": "Table: compact metadata rows",
+  "view.content": "Cards",
+  "view.details": "Table",
   "settings.downloadErrorReport": "Download error report",
   "entity.kind.person": "person",
   "entity.kind.cat": "cat",
@@ -251,5 +251,9 @@
   "details.noDate": "Date unknown",
   "hint.favorites": "Show photos marked with a star",
   "favorites.empty": "No favorite photos yet",
-  "graph.hint": "Hover a node to highlight its connections. Click a node to filter the main window by that tag."
+  "graph.hint": "Hover a node to highlight its connections. Click a node to filter the main window by that tag.",
+  "cards.duplicates": "Duplicates",
+  "cards.duplicateCount": "{n} copies",
+  "cards.noDuplicates": "No duplicates found",
+  "cards.duplicatesFailed": "Could not load duplicates"
 }
