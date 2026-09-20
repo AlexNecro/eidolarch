@@ -331,10 +331,10 @@ class EntityIndexer:
             log_exception("entity self-test", e)
             return {"ok": False, "error": self.state.error}
 
-    def process_photo(self, photo_row):
+    def process_photo(self, photo_row, force: bool = False):
         detector_model, provider_key, embedding_model = self.scan_key
         photo_id = int(photo_row["id"])
-        if db.has_entity_scan(photo_id, detector_model, provider_key, embedding_model):
+        if not force and db.has_entity_scan(photo_id, detector_model, provider_key, embedding_model):
             return 0
         try:
             path = Path(photo_row["path"])
@@ -351,7 +351,22 @@ class EntityIndexer:
                     crop = image.crop((max(0, x1 - pad_x), max(0, y1 - pad_y), min(w, x2 + pad_x), min(h, y2 + pad_y)))
                     vector = embedder.embed_image(crop)
                     rows.append((kind, score, x1, y1, x2, y2, vector))
+                # Preserve manually assigned identities across a re-detect when the
+                # new box still strongly overlaps the old object of the same kind.
+                old_named = [dict(x) for x in db.list_detections(photo_id) if x['entity_id'] is not None]
                 db.replace_detections(photo_id, detector_model, provider_key, embedding_model, rows)
+                if old_named:
+                    for fresh in db.list_detections(photo_id):
+                        best = None; best_iou = 0.0
+                        fb = (float(fresh['x1']), float(fresh['y1']), float(fresh['x2']), float(fresh['y2']))
+                        for old in old_named:
+                            if old['kind'] != fresh['kind']: continue
+                            ob = (float(old['x1']), float(old['y1']), float(old['x2']), float(old['y2']))
+                            iou = self._iou(fb, ob)
+                            if iou > best_iou:
+                                best_iou, best = iou, old
+                        if best is not None and best_iou >= 0.55:
+                            db.assign_detection_entity(int(fresh['id']), int(best['entity_id']))
                 db.finish_entity_scan(photo_id, detector_model, provider_key, embedding_model, None)
                 logger().info(
                     'Entity detection photo=%s raw=%s target=%s threshold=%s nms=%s final=%s',
