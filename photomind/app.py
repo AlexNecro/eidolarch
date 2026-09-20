@@ -616,7 +616,7 @@ def search(q: str = Query(min_length=1), limit: int = Query(80, ge=1, le=300), f
 
         # @name is an exact named-entity filter. Multiple @tokens use AND semantics.
         # Keep the remaining plain text as an optional semantic query.
-        tokens=re.findall(r'(?<!\\S)@([^\\s@#]+)', query)
+        tokens=re.findall(r'(?<!\S)@([^\s@#]+)', query)
         entities=db.list_entities()
         by_name={str(e['name']).casefold():e for e in entities}
         entity_ids=[]; unknown=[]
@@ -624,7 +624,7 @@ def search(q: str = Query(min_length=1), limit: int = Query(80, ge=1, le=300), f
             ent=by_name.get(token.casefold())
             if ent: entity_ids.append(int(ent['id']))
             else: unknown.append(token)
-        semantic_query=re.sub(r'(?<!\\S)@[^\\s@#]+',' ',query)
+        semantic_query=re.sub(r'(?<!\S)@[^\s@#]+',' ',query)
         semantic_query=' '.join(semantic_query.split())
 
         pk = embedder.provider_key if embedder.state.loaded else None
