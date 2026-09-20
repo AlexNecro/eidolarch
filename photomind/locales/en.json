@@ -1,6 +1,6 @@
 {
   "app.title": "Eidolarch",
-  "app.version": "v2.2.10",
+  "app.version": "v2.2.11",
   "search.placeholder": "Search photos…",
   "search.find": "Search",
   "search.clear": "Clear search",
@@ -134,7 +134,7 @@
   "hint.large": "Large tiles",
   "hint.list": "List",
   "hint.timeline": "Timeline",
-  "hint.duplicateBadge": "Duplicates found: {n} files in the group",
+  "hint.duplicateBadge": "Duplicates: {n} files in this group. Click to open duplicates.",
   "hint.score": "Similarity ranking score; this is not a probability",
   "hint.folderCount": "Photos directly in this folder: {n}",
   "hint.searchScopeAll": "Search all photos",
@@ -245,5 +245,7 @@
   "viewer.currentFile": "Current file",
   "viewer.duplicateResults": "Duplicates",
   "error.thumbnailFailed": "Could not build thumbnail",
-  "error.redetectFailed": "Object re-detection failed"
+  "error.redetectFailed": "Object re-detection failed",
+  "hint.searchLanguage": "Search syntax\\nPlain text — current semantic image search\\n@name — named person/pet (planned)\\n#tag — exact tag/filter\\nExamples: @Tera on sofa · @Alex #cottage · thank-you letter 1C",
+  "hint.uiTooltip": "Interface hint"
 }
