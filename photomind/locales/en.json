@@ -1,6 +1,6 @@
 {
   "app.title": "Eidolarch",
-  "app.version": "v2.2.12",
+  "app.version": "v2.2.13",
   "search.placeholder": "Search photos…",
   "search.find": "Search",
   "search.clear": "Clear search",
@@ -210,8 +210,8 @@
   "settings.installApp": "Install as app",
   "settings.installAppHint": "On a phone Eidolarch can run from its own PWA shortcut. If the browser does not offer installation, use “Add to Home Screen”.",
   "settings.installManual": "Use the browser menu → “Install app” or “Add to Home Screen”.",
-  "hint.content": "Content view: large preview with rich metadata",
-  "hint.details": "Details view: dense metadata list",
+  "hint.content": "Content: large preview, path and extra metadata",
+  "hint.details": "Details: compact metadata rows",
   "view.content": "Content",
   "view.details": "Details",
   "settings.downloadErrorReport": "Download error report",
@@ -248,5 +248,7 @@
   "error.redetectFailed": "Object re-detection failed",
   "hint.searchLanguage": "Search syntax\nPlain text — semantic image search\n@name — exact named person/pet\n#tag — exact tag/filter\nExamples: @Tera · @Tera on sofa · @Alex @Tera",
   "hint.uiTooltip": "Interface hint",
-  "details.noDate": "Date unknown"
+  "details.noDate": "Date unknown",
+  "hint.favorites": "Show photos marked with a star",
+  "favorites.empty": "No favorite photos yet"
 }
