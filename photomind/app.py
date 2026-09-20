@@ -1100,6 +1100,10 @@ def viewer_page(): return FileResponse(STATIC / 'viewer.html', headers={'Cache-C
 @app.get('/settings')
 def settings_page(): return FileResponse(STATIC / 'settings.html', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
 
+@app.get('/help.css', include_in_schema=False)
+def help_css():
+    return FileResponse(STATIC / 'help' / 'help.css', media_type='text/css', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
+
 @app.get('/help')
 def help_page(lang: str = 'ru'):
     safe='ru' if str(lang).lower().startswith('ru') else 'en'
