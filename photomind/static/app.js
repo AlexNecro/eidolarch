@@ -81,7 +81,7 @@ async function loadInlineDuplicatePaths(photo,tile){
  box.innerHTML=dupes.length?dupes.map(x=>`<button class="duplicate-copy" type="button" data-duplicate-id="${x.id}"><img src="${x.thumbnail}" alt=""><span><b>${esc((x.path||'').split(/[\\/]/).pop()||x.name||'')}</b><code>${esc(x.path||'')}</code><small>${esc(x.match_type||'duplicate')}${x.size?' · '+fmtBytes(x.size):''}</small></span></button>`).join(''):`<div class="card-context-empty">${esc(t('cards.noDuplicates'))}</div>`;
  box.querySelectorAll('[data-duplicate-id]').forEach(b=>b.onclick=e=>{e.stopPropagation();const x=(items||[]).find(v=>Number(v.id)===Number(b.dataset.duplicateId));if(x)openViewer(x,'duplicates')});
 }
-function refreshInlineDuplicatePaths(){if((document.body.dataset.view||'grid')!=='content')return;for(const tile of $('.tile.has-duplicate')){const r=tile.getBoundingClientRect();if(r.bottom>=-120&&r.top<=innerHeight+240){const p=currentItems.find(x=>Number(x.id)===Number(tile.dataset.id));if(p)loadInlineDuplicatePaths(p,tile)}}}
+function refreshInlineDuplicatePaths(){if((document.body.dataset.view||'grid')!=='content')return;for(const tile of $('.tile[data-id]')){const r=tile.getBoundingClientRect();if(r.bottom>=-120&&r.top<=innerHeight+240){const p=currentItems.find(x=>Number(x.id)===Number(tile.dataset.id));if(p)loadInlineDuplicatePaths(p,tile)}}}
 async function loadDuplicateTooltip(photo,tile){
  if(!photo.duplicate_count)return;
  let tip=tile.querySelector('.duplicate-path-tooltip');
