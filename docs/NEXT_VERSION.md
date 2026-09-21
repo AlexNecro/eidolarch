@@ -21,6 +21,12 @@ Deferred from 2.2.14:
 - product launcher/backend lifecycle;
 - duplicate-package workspace;
 - entity detector cleanup and pet/face classification refinements.
+### 2.2.14 follow-up observations
+- **View switch regression:** Grid / Cards / Table buttons are visible but no longer respond to clicks. Treat as a release-blocking UI regression before further Cards work.
+- **Cards duplicate context:** show duplicate copies as **text rows only** (path/name + match metadata). Thumbnails are redundant because duplicates are expected to depict the same image and consume valuable horizontal/vertical space.
+- **Viewer zoom controls:** restore concise control-specific tooltips, but do not attach one large tooltip to the whole image stage. Rework **100%** and **Fit** as mutually exclusive/radio-style view modes. Remove the extra textual mode label to the right; the active button itself is sufficient state.
+- **Cards hover sizing:** reduce base card height/scale very slightly so the hover-enlarged active card remains fully inside the viewport/grid gutter and its side borders are not clipped. Preserve the subtle enlargement effect.
+
 
 
 ## Completed in 2.2.10
