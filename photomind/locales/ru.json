@@ -1,6 +1,6 @@
 {
   "app.title": "Eidolarch",
-  "app.version": "v2.2.14",
+  "app.version": "v2.2.15",
   "search.placeholder": "Поиск по фотографиям…",
   "search.find": "Найти",
   "search.clear": "Очистить поиск",
@@ -255,5 +255,7 @@
   "cards.duplicates": "Дубли",
   "cards.duplicateCount": "{n} коп.",
   "cards.noDuplicates": "Дубликатов не найдено",
-  "cards.duplicatesFailed": "Не удалось загрузить дубли"
+  "cards.duplicatesFailed": "Не удалось загрузить дубли",
+  "viewer.actualHint": "Показать изображение в масштабе 100%",
+  "viewer.fitHint": "Вписать изображение в окно"
 }
