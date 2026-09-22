@@ -1,6 +1,6 @@
 # Eidolarch 2.2.x — Stabilization before 2.3
 
-## 2.2.14 — Cards and UI polish
+## 2.2.15 — Cards and UI polish
 
 Target:
 - make the three browse modes meaningfully different;
@@ -17,11 +17,11 @@ Implemented:
 - The large viewer-stage shortcut tooltip is removed; only control-specific tooltips remain.
 - Relationship-graph edges are thinner and hover de-emphasis is softer.
 
-Deferred from 2.2.14:
+Deferred from 2.2.15:
 - product launcher/backend lifecycle;
 - duplicate-package workspace;
 - entity detector cleanup and pet/face classification refinements.
-### 2.2.14 follow-up observations
+### 2.2.15 follow-up observations
 - **View switch regression:** Grid / Cards / Table buttons are visible but no longer respond to clicks. Treat as a release-blocking UI regression before further Cards work.
 - **Cards duplicate context:** show duplicate copies as **text rows only** (path/name + match metadata). Thumbnails are redundant because duplicates are expected to depict the same image and consume valuable horizontal/vertical space.
 - **Viewer zoom controls:** restore concise control-specific tooltips, but do not attach one large tooltip to the whole image stage. Rework **100%** and **Fit** as mutually exclusive/radio-style view modes. Remove the extra textual mode label to the right; the active button itself is sufficient state.
@@ -71,6 +71,14 @@ Deferred from 2.2.14:
 - Duplicate hover action reuses the duplicate badge position instead of shifting the target.
 - Content/list view exposes several duplicate paths directly under the current path.
 - Details no longer shows an unexplained bare dash for a missing capture date.
+
+## Completed in 2.2.15
+
+- Fixed the Grid / Cards / Table switch regression caused by iterating a single element instead of the full tile collection.
+- Cards duplicate context now uses compact text rows instead of redundant thumbnails.
+- Restored concise tooltips for the 100% and Fit viewer controls.
+- 100% and Fit now behave as mutually exclusive view-mode buttons; the redundant textual mode label was removed.
+- Cards are slightly smaller and use a gentler hover scale plus wider outer gutter so the active border remains visible.
 
 ## Critical fixes still open
 
