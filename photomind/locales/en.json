@@ -1,6 +1,6 @@
 {
   "app.title": "Eidolarch",
-  "app.version": "v2.2.14",
+  "app.version": "v2.2.15",
   "search.placeholder": "Search photos…",
   "search.find": "Search",
   "search.clear": "Clear search",
@@ -255,5 +255,7 @@
   "cards.duplicates": "Duplicates",
   "cards.duplicateCount": "{n} copies",
   "cards.noDuplicates": "No duplicates found",
-  "cards.duplicatesFailed": "Could not load duplicates"
+  "cards.duplicatesFailed": "Could not load duplicates",
+  "viewer.actualHint": "Show the image at 100% scale",
+  "viewer.fitHint": "Fit the image to the window"
 }
