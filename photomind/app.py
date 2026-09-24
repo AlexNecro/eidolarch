@@ -714,12 +714,15 @@ def duplicate_gallery(limit: int = Query(120, ge=1, le=300), offset: int = Query
 
 @app.get('/api/duplicate-location-groups')
 def duplicate_location_groups(limit: int = Query(80, ge=1, le=200), offset: int = Query(0, ge=0)):
-    """First duplicate-package view.
+    """Group current exact duplicates by physical parent directory.
 
-    Uses only the current exact-duplicate contract from db.exact_duplicate_rows().
-    Physical parent directories are locations. We keep the strongest non-redundant
-    location relationships (maximum spanning forest) so a few cross-folder overlaps
-    do not glue otherwise useful groups together.
+    The matcher is intentionally isolated in db.exact_duplicate_rows(). The UI does
+    not know about SHA-256. If the definition of a duplicate changes later, that
+    database helper can be replaced without redesigning this workspace.
+
+    Pair relations may overlap. A weak A<->B relation is omitted only when every
+    file in it is already present through a stronger common location C. This avoids
+    a couple of cross-folder files gluing otherwise useful groups together.
     """
     from collections import defaultdict
     from itertools import combinations
@@ -731,42 +734,54 @@ def duplicate_location_groups(limit: int = Query(80, ge=1, le=200), offset: int 
         by_hash[str(r['sha256'])][loc].append(r)
 
     edge_keys=defaultdict(set)
-    edge_bytes=defaultdict(int)
-    locations=set()
+    local_only=defaultdict(set)
     for key,locmap in by_hash.items():
         locs=sorted(locmap.keys(), key=str.casefold)
-        locations.update(locs)
-        if len(locs)<2:
+        if len(locs)==1:
+            loc=locs[0]
+            if len(locmap[loc])>1:
+                local_only[loc].add(key)
             continue
-        sample_size=int(next(iter(next(iter(locmap.values())))).get('size') or 0)
         for a,b in combinations(locs,2):
             edge=(a,b) if a.casefold()<=b.casefold() else (b,a)
             edge_keys[edge].add(key)
-            edge_bytes[edge]+=sample_size
 
-    parent={x:x for x in locations}
-    def find(x):
-        while parent[x]!=x:
-            parent[x]=parent[parent[x]]
-            x=parent[x]
-        return x
-    def union(a,b):
-        ra,rb=find(a),find(b)
-        if ra==rb:return False
-        parent[rb]=ra
-        return True
+    edge_weight={edge:len(keys) for edge,keys in edge_keys.items()}
+    filtered_edges={}
+    for (a,b),keys in edge_keys.items():
+        keep=set()
+        current=edge_weight[(a,b)]
+        third_locations=set()
+        for key in keys:
+            third_locations.update(x for x in by_hash[key].keys() if x not in (a,b))
+        for key in keys:
+            redundant=False
+            for c in third_locations:
+                if c not in by_hash[key]:
+                    continue
+                ac=(a,c) if a.casefold()<=c.casefold() else (c,a)
+                bc=(b,c) if b.casefold()<=c.casefold() else (c,b)
+                wa=edge_weight.get(ac,0); wb=edge_weight.get(bc,0)
+                if wa>=current and wb>=current and (wa>current or wb>current):
+                    redundant=True
+                    break
+            if not redundant:
+                keep.add(key)
+        if keep:
+            filtered_edges[(a,b)]=keep
 
-    ranked=sorted(edge_keys, key=lambda e:(-len(edge_keys[e]),-edge_bytes[e],e[0].casefold(),e[1].casefold()))
-    selected=[]
-    for edge in ranked:
-        if union(*edge):
-            selected.append(edge)
+    specs=[(list(edge),keys) for edge,keys in filtered_edges.items()]
+    specs.extend(([loc],keys) for loc,keys in local_only.items())
+
+    def key_sort(key):
+        paths=[x['path'] for locrows in by_hash[key].values() for x in locrows]
+        return min(paths,key=str.casefold).casefold()
 
     groups=[]
-    for a,b in selected:
-        keys=sorted(edge_keys[(a,b)], key=lambda k:min((x['path'] for loc in by_hash[k].values() for x in loc), key=str.casefold).casefold())
+    for locations,keys_set in specs:
+        keys=sorted(keys_set,key=key_sort)
         locations_json=[]
-        for loc in (a,b):
+        for loc in locations:
             files=[]
             for logical_index,key in enumerate(keys):
                 for r in by_hash[key].get(loc,[]):
@@ -784,19 +799,23 @@ def duplicate_location_groups(limit: int = Query(80, ge=1, le=200), offset: int 
                 'file_count':len(files),
                 'files':files,
             })
+        reclaimable=0
+        for key in keys:
+            copies=sum(len(v) for v in by_hash[key].values() if v and (len(locations)==1 or next(iter(v))['path'] and str(Path(next(iter(v))['path']).parent) in locations))
+            sample=next(x for locrows in by_hash[key].values() for x in locrows)
+            reclaimable+=max(1,copies-1)*int(sample.get('size') or 0)
         groups.append({
             'id':f'g{len(groups)+1}',
             'logical_count':len(keys),
             'file_count':sum(x['file_count'] for x in locations_json),
-            'location_count':2,
-            'reclaimable_bytes':sum(int(next(iter(next(iter(by_hash[k].values())))).get('size') or 0) for k in keys),
+            'location_count':len(locations_json),
+            'reclaimable_bytes':reclaimable,
             'locations':locations_json,
         })
 
-    groups.sort(key=lambda g:(-g['logical_count'],-g['reclaimable_bytes'],g['locations'][0]['path'].casefold(),g['locations'][1]['path'].casefold()))
+    groups.sort(key=lambda g:(-g['logical_count'],-g['reclaimable_bytes'],tuple(x['path'].casefold() for x in g['locations'])))
     total=len(groups)
     return {'total':total,'groups':groups[offset:offset+limit]}
-
 
 
 @app.get('/api/photos/{photo_id}/info')
@@ -1234,7 +1253,7 @@ def _versioned_html(path: Path):
     # because one static HTML file missed a mechanical version bump.
     import re
     html=path.read_text(encoding='utf-8')
-    html=re.sub(r'2\\.\\d+\\.\\d+', APP_VERSION, html)
+    html=re.sub(r'2\.\d+\.\d+', APP_VERSION, html)
     return Response(html, media_type='text/html', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
 
 @app.get('/graph')
