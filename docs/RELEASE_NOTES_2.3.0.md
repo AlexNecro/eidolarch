@@ -3,6 +3,7 @@
 First hierarchical duplicate-groups release.
 
 ## Duplicate workspace
+- Duplicate semantics are exact-file only in this release; visual similarity remains separate.
 - Duplicate mode now groups matching files by physical location instead of showing a flat photo list.
 - Hierarchy: **Duplicate group → Location → File**.
 - Current v1 uses only the isolated exact-duplicate source contract from `db.exact_duplicate_rows()`.
