@@ -9,7 +9,7 @@ Current version: **2.3.0**.
 - Browse multiple photo roots and subfolders immediately, without waiting for AI indexing.
 - Natural-language semantic photo search using local image/text embeddings.
 - Folder and cumulative tag navigation.
-- Exact and near-duplicate detection.
+- Exact duplicate detection; visual similarity remains a separate workflow.
 - Visually similar-photo search.
 - EXIF/details viewer with zoom, pan, fullscreen and separate viewer windows.
 - Object detection for people/cats/dogs with diagnostics and manual naming.
