@@ -49,7 +49,7 @@ Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, 
 - Relationship graph moved to its own app window; hovering a node highlights its incident edges.
 - Restored the detailed Help emblem.
 
-## 2.3.0 Cards and UI polish
+## 2.2.14 Cards and UI polish
 - Reworked Content into Cards: preview + metadata + duplicate context panel.
 - Cards show duplicate thumbnails, paths, match type and size when available.
 - Grid/Tiles stays image-dense; Details/Table is intentionally deferred.
@@ -57,7 +57,7 @@ Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, 
 - Relationship graph edges are thinner and hover de-emphasis is softer.
 - Fixed collection-selector regressions that prevented Cards duplicate hydration and view-button active state.
 
-## 2.3.0 UI regression fixes
+## 2.2.15 UI regression fixes
 - Fixed non-responsive Grid / Cards / Table switching.
 - Cards duplicate context is text-only.
 - Viewer 100% / Fit controls are explicit mode buttons with concise hints and no redundant status label.
