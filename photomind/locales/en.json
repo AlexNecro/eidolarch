@@ -1,6 +1,6 @@
 {
   "app.title": "Eidolarch",
-  "app.version": "v2.2.15",
+  "app.version": "v2.3.0",
   "search.placeholder": "Search photos…",
   "search.find": "Search",
   "search.clear": "Clear search",
@@ -147,7 +147,7 @@
   "hint.relevanceColor": "A red tint means a weaker match relative to the best results in the current search",
   "nav.duplicates": "Duplicates",
   "nav.photos": "Photos",
-  "hint.duplicatesMode": "Show only photos that have detected duplicates",
+  "hint.duplicatesMode": "Show duplicate groups by location",
   "duplicates.title": "Duplicates",
   "duplicates.empty": "No duplicates found",
   "folder.counts": "{folders} folders · {photos} photos",
@@ -257,5 +257,8 @@
   "cards.noDuplicates": "No duplicates found",
   "cards.duplicatesFailed": "Could not load duplicates",
   "viewer.actualHint": "Show the image at 100% scale",
-  "viewer.fitHint": "Fit the image to the window"
+  "viewer.fitHint": "Fit the image to the window",
+  "duplicates.group": "Duplicate group",
+  "duplicates.groupSummary": "{n} matching images · {locations} locations · reclaim ≈ {size}",
+  "duplicates.locationFiles": "{n} files"
 }
