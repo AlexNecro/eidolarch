@@ -1,6 +1,6 @@
 {
   "app.title": "Eidolarch",
-  "app.version": "v2.2.15",
+  "app.version": "v2.3.0",
   "search.placeholder": "Поиск по фотографиям…",
   "search.find": "Найти",
   "search.clear": "Очистить поиск",
@@ -147,7 +147,7 @@
   "hint.relevanceColor": "Красная подложка означает более слабое совпадение относительно лучших результатов текущего поиска",
   "nav.duplicates": "Дубли",
   "nav.photos": "Фото",
-  "hint.duplicatesMode": "Показать только фотографии, для которых найдены дубли",
+  "hint.duplicatesMode": "Показать группы совпадающих файлов по местоположениям",
   "duplicates.title": "Дубли",
   "duplicates.empty": "Дубли не найдены",
   "folder.counts": "{folders} папок · {photos} фото",
@@ -257,5 +257,8 @@
   "cards.noDuplicates": "Дубликатов не найдено",
   "cards.duplicatesFailed": "Не удалось загрузить дубли",
   "viewer.actualHint": "Показать изображение в масштабе 100%",
-  "viewer.fitHint": "Вписать изображение в окно"
+  "viewer.fitHint": "Вписать изображение в окно",
+  "duplicates.group": "Группа дублей",
+  "duplicates.groupSummary": "{n} совпадающих изображений · {locations} местоположения · можно освободить ≈ {size}",
+  "duplicates.locationFiles": "{n} файлов"
 }
