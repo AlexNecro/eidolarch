@@ -64,6 +64,7 @@ Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, 
 - Cards are slightly smaller and hover enlargement is gentler so card borders remain visible.
 
 ## 2.3.0 Duplicate groups v1
+- Duplicate semantics are exact-file only in the duplicate UI/API; perceptual similarity is not treated as a duplicate in this version.
 - Added an isolated exact-duplicate source contract (`exact_duplicate_rows`).
 - Added `/api/duplicate-location-groups` without changing the legacy `/api/duplicates` or per-photo duplicate endpoints.
 - Duplicate mode renders hierarchical Group → Location → File sections.
