@@ -1,6 +1,22 @@
+# Eidolarch — Active work
+
+## 2.3.0 — Duplicate groups v1
+
+First implementation is intentionally conservative and read-only at group level.
+
+- Duplicate workspace uses only the current exact-duplicate matcher from `db.exact_duplicate_rows()`.
+- The UI does not know that the current implementation is SHA-256; the matcher can be replaced later without changing the workspace contract.
+- A **Duplicate group** represents a meaningful relationship between physical parent-directory locations.
+- A **Location** is the direct parent directory of a physical file in this first version; there is no tree inference or smart branch lifting yet.
+- Matching logical files keep the same marker/color across locations; hovering one highlights its counterparts.
+- Weak cross-folder relations are suppressed only when every shared file is already represented through a stronger common location. Distinct relations are not hidden merely because the folder graph contains a cycle.
+- Same-folder exact duplicates are still represented as a one-location group.
+- Existing per-photo duplicate API and Viewer duplicate behavior remain intact.
+- No package-level delete action yet. First validate grouping on the real library before enabling bulk destructive operations.
+
 # Eidolarch 2.2.x — Stabilization before 2.3
 
-## 2.2.15 — Cards and UI polish
+## 2.3.0 — Cards and UI polish
 
 Target:
 - make the three browse modes meaningfully different;
@@ -17,11 +33,11 @@ Implemented:
 - The large viewer-stage shortcut tooltip is removed; only control-specific tooltips remain.
 - Relationship-graph edges are thinner and hover de-emphasis is softer.
 
-Deferred from 2.2.15:
+Deferred from 2.3.0:
 - product launcher/backend lifecycle;
 - duplicate-package workspace;
 - entity detector cleanup and pet/face classification refinements.
-### 2.2.15 follow-up observations
+### 2.3.0 follow-up observations
 - **View switch regression:** Grid / Cards / Table buttons are visible but no longer respond to clicks. Treat as a release-blocking UI regression before further Cards work.
 - **Cards duplicate context:** show duplicate copies as **text rows only** (path/name + match metadata). Thumbnails are redundant because duplicates are expected to depict the same image and consume valuable horizontal/vertical space.
 - **Viewer zoom controls:** restore concise control-specific tooltips, but do not attach one large tooltip to the whole image stage. Rework **100%** and **Fit** as mutually exclusive/radio-style view modes. Remove the extra textual mode label to the right; the active button itself is sufficient state.
@@ -72,7 +88,7 @@ Deferred from 2.2.15:
 - Content/list view exposes several duplicate paths directly under the current path.
 - Details no longer shows an unexplained bare dash for a missing capture date.
 
-## Completed in 2.2.15
+## Completed in 2.3.0
 
 - Fixed the Grid / Cards / Table switch regression caused by iterating a single element instead of the full tile collection.
 - Cards duplicate context now uses compact text rows instead of redundant thumbnails.
