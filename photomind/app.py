@@ -855,30 +855,22 @@ def _duplicate_path_score(path: str) -> int:
 def duplicates(photo_id: int):
     current=db.get_photo(photo_id)
     if not current: raise HTTPException(404, {'code':'error.photoNotFound'})
-    h=db.conn().execute('SELECT sha256,dhash FROM photo_hashes WHERE photo_id=?',(photo_id,)).fetchone()
     current_json=photo_json(current, db.duplicate_count(photo_id))
     current_json['is_current']=True
     current_json['path_priority']=_duplicate_path_score(current_json.get('path',''))
-    if not h:return {'photo_id':photo_id,'current':current_json,'items':[],'exact_count':0,'near_count':0}
     ids=[photo_id,*db.photo_ids_by_hash(photo_id)]
-    # De-duplicate ids while keeping deterministic order.
     ids=list(dict.fromkeys(int(x) for x in ids))
     rows=db.photo_rows_by_ids(ids)
     counts=db.duplicate_counts(ids)
     group=[]
     for r in rows:
         d=photo_json(r,counts.get(int(r['id']),0))
-        rh=db.conn().execute('SELECT sha256,dhash FROM photo_hashes WHERE photo_id=?',(int(r['id']),)).fetchone()
-        exact=bool(h['sha256'] and rh and rh['sha256']==h['sha256'])
-        near=bool(h['dhash'] and rh and rh['dhash']==h['dhash'])
-        d['match_type']='exact' if exact else ('near' if near else 'related')
+        d['match_type']='exact'
         d['path_priority']=_duplicate_path_score(d.get('path',''))
         d['is_current']=int(r['id'])==int(photo_id)
         d['_rank']=(d['path_priority'], int((d.get('width') or 0)*(d.get('height') or 0)), int(d.get('size') or 0), 1 if d.get('taken_at') else 0)
         group.append(d)
     if group:
-        # Recommend exactly one keeper. On a complete tie prefer the current file,
-        # otherwise keep the deterministic lowest photo id rather than marking all copies.
         winner=max(group, key=lambda x:(x['_rank'], 1 if x['is_current'] else 0, -int(x['id'])))
         for x in group:
             x['recommended_keep']=x is winner
@@ -887,8 +879,8 @@ def duplicates(photo_id: int):
     others=[x for x in group if not x['is_current']]
     return {
         'photo_id':photo_id,'current':cur,'items':others,
-        'exact_count':sum(1 for x in others if x['match_type']=='exact'),
-        'near_count':sum(1 for x in others if x['match_type']=='near')
+        'exact_count':len(others),
+        'near_count':0
     }
 
 
