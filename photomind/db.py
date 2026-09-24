@@ -382,6 +382,26 @@ def list_duplicate_photos(limit=120, offset=0, sort='taken_desc'):
         ORDER BY {order.get(sort,order['taken_desc'])} LIMIT ? OFFSET ?""",(int(limit),int(offset))).fetchall()
     return rows,total
 
+def exact_duplicate_rows():
+    """Return only byte-identical duplicate files (same non-empty SHA-256).
+
+    Duplicate-package grouping intentionally depends on this narrow contract.
+    If Eidolarch changes what counts as a duplicate later, replace this helper
+    rather than leaking hash semantics into the UI.
+    """
+    return conn().execute("""
+        SELECT h.sha256,p.id,p.path,p.name,p.size,p.taken_at,p.width,p.height,p.mtime_ns,p.thumb_path
+        FROM photo_hashes h
+        JOIN photos p ON p.id=h.photo_id
+        JOIN (
+            SELECT sha256 FROM photo_hashes
+            WHERE sha256 IS NOT NULL AND sha256<>''
+            GROUP BY sha256 HAVING COUNT(*)>1
+        ) d ON d.sha256=h.sha256
+        WHERE p.error IS NULL
+        ORDER BY h.sha256,p.path COLLATE NOCASE,p.id
+    """).fetchall()
+
 def duplicate_groups(limit=100):
     rows=conn().execute("""SELECT COALESCE(NULLIF(sha256,''),dhash) k, COUNT(*) c, GROUP_CONCAT(photo_id) ids
         FROM photo_hashes WHERE sha256 IS NOT NULL OR dhash IS NOT NULL
