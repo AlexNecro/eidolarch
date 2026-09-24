@@ -337,8 +337,7 @@ def duplicate_counts(photo_ids):
       SELECT a.photo_id, COUNT(DISTINCT b.photo_id) c
       FROM photo_hashes a
       LEFT JOIN photo_hashes b ON b.photo_id<>a.photo_id
-       AND ((a.sha256 IS NOT NULL AND a.sha256<>'' AND b.sha256=a.sha256)
-         OR (a.dhash IS NOT NULL AND a.dhash<>'' AND b.dhash=a.dhash))
+       AND a.sha256 IS NOT NULL AND a.sha256<>'' AND b.sha256=a.sha256
       WHERE a.photo_id IN ({q})
       GROUP BY a.photo_id
     """,ids).fetchall()
@@ -355,16 +354,15 @@ def entity_scan_status(photo_id, detector_model=None, provider_key=None, embeddi
     return dict(row) if row else None
 
 def duplicate_count(photo_id):
-    r=conn().execute('SELECT sha256,dhash FROM photo_hashes WHERE photo_id=?',(photo_id,)).fetchone()
-    if not r:return 0
+    r=conn().execute('SELECT sha256 FROM photo_hashes WHERE photo_id=?',(photo_id,)).fetchone()
+    if not r or not r['sha256']:return 0
     c=conn().execute("""SELECT COUNT(DISTINCT ph.photo_id) c FROM photo_hashes ph
-        WHERE ph.photo_id<>? AND ((? IS NOT NULL AND ph.sha256=?) OR (? IS NOT NULL AND ph.dhash=?))""",
-        (photo_id,r['sha256'],r['sha256'],r['dhash'],r['dhash'])).fetchone()
+        WHERE ph.photo_id<>? AND ph.sha256=?""",(photo_id,r['sha256'])).fetchone()
     return int(c['c'])
 
 def list_duplicate_photos(limit=120, offset=0, sort='taken_desc'):
     c=conn()
-    where = "EXISTS (SELECT 1 FROM photo_hashes a JOIN photo_hashes b ON b.photo_id<>a.photo_id AND ((a.sha256 IS NOT NULL AND b.sha256=a.sha256) OR (a.dhash IS NOT NULL AND b.dhash=a.dhash)) WHERE a.photo_id=p.id)"
+    where = "EXISTS (SELECT 1 FROM photo_hashes a JOIN photo_hashes b ON b.photo_id<>a.photo_id AND a.sha256 IS NOT NULL AND a.sha256<>'' AND b.sha256=a.sha256 WHERE a.photo_id=p.id)"
     order={
       'taken_desc':'COALESCE(p.taken_at,p.indexed_at) DESC,p.id DESC',
       'taken_asc':'COALESCE(p.taken_at,p.indexed_at) ASC,p.id ASC',
@@ -403,9 +401,9 @@ def exact_duplicate_rows():
     """).fetchall()
 
 def duplicate_groups(limit=100):
-    rows=conn().execute("""SELECT COALESCE(NULLIF(sha256,''),dhash) k, COUNT(*) c, GROUP_CONCAT(photo_id) ids
-        FROM photo_hashes WHERE sha256 IS NOT NULL OR dhash IS NOT NULL
-        GROUP BY COALESCE(NULLIF(sha256,''),dhash) HAVING COUNT(*)>1 ORDER BY c DESC LIMIT ?""",(limit,)).fetchall()
+    rows=conn().execute("""SELECT sha256 k, COUNT(*) c, GROUP_CONCAT(photo_id) ids
+        FROM photo_hashes WHERE sha256 IS NOT NULL AND sha256<>''
+        GROUP BY sha256 HAVING COUNT(*)>1 ORDER BY c DESC LIMIT ?""",(limit,)).fetchall()
     return [dict(r) for r in rows]
 
 def get_embedding(photo_id,provider_key,model):
@@ -524,10 +522,10 @@ def count_unscanned_entities(detector_model,provider_key,embedding_model):
     return len(photos_for_entity_scan(detector_model,provider_key,embedding_model))
 
 def photo_ids_by_hash(photo_id):
-    r=conn().execute('SELECT sha256,dhash FROM photo_hashes WHERE photo_id=?',(photo_id,)).fetchone()
-    if not r:return []
-    return [int(x['photo_id']) for x in conn().execute("""SELECT DISTINCT photo_id FROM photo_hashes WHERE photo_id<>? AND ((? IS NOT NULL AND sha256=?) OR (? IS NOT NULL AND dhash=?))""",
-        (photo_id,r['sha256'],r['sha256'],r['dhash'],r['dhash'])).fetchall()]
+    r=conn().execute('SELECT sha256 FROM photo_hashes WHERE photo_id=?',(photo_id,)).fetchone()
+    if not r or not r['sha256']:return []
+    return [int(x['photo_id']) for x in conn().execute("""SELECT DISTINCT photo_id FROM photo_hashes WHERE photo_id<>? AND sha256=?""",
+        (photo_id,r['sha256'])).fetchall()]
 
 def photo_rows_by_ids(ids):
     ids=[int(x) for x in ids]
