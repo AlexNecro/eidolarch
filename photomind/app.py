@@ -726,6 +726,7 @@ def duplicate_location_groups(limit: int = Query(80, ge=1, le=200), offset: int 
     """
     from collections import defaultdict
     from itertools import combinations
+    import hashlib
 
     rows=[dict(r) for r in db.exact_duplicate_rows()]
     by_hash=defaultdict(lambda: defaultdict(list))
@@ -792,6 +793,8 @@ def duplicate_location_groups(limit: int = Query(80, ge=1, le=200), offset: int 
                         'width':r.get('width'),'height':r.get('height'),
                         'thumbnail':f"/api/photos/{pid}/thumbnail?fv={int(r.get('mtime_ns') or 0)}-{int(r.get('size') or 0)}",
                         'logical_index':logical_index,
+                        'logical_id':hashlib.blake2s(key.encode('utf-8'),digest_size=8).hexdigest(),
+                        'marker_index':int(hashlib.blake2s(key.encode('utf-8'),digest_size=2).hexdigest(),16)%12,
                     })
             locations_json.append({
                 'path':loc,
