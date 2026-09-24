@@ -29,11 +29,11 @@ The project is still experimental. Current priorities:
    - Cards = large preview + metadata + contextual right panel;
    - Table is intentionally deferred until the first two modes are clearly distinct.
 
-2. **Duplicate package workflow**
-   - detect duplicated folder/branch sets instead of presenting only file pairs;
-   - package matrix: locations as columns, logical photos as rows, visible gaps;
-   - overlap/unique counts, reclaimable size and safe package-level cleanup;
-   - Recycle Bin only, with immediate UI/database refresh.
+2. **Duplicate groups**
+   - current v2.3 workspace groups matching files as **Group → Location → File**;
+   - locations are direct physical parent folders in the first version;
+   - matching files keep the same visual marker across locations;
+   - group-level cleanup is intentionally deferred until grouping is validated on the real library.
 
 3. **Named entities**
    - `@name` exact entity search and autocomplete are already implemented;
@@ -125,7 +125,7 @@ Release notes:
 
 - Named people/pet recognition is still experimental.
 - Similar-photo ranking and performance are still being tuned.
-- Duplicate cleanup UI is not yet the intended grouped workflow.
+- Duplicate groups are now experimental v1; bulk group cleanup is not enabled yet.
 - Semantic search can return weak results for ambiguous short queries.
 - OCR is not implemented yet; `@entity` search is implemented but the entity-recognition pipeline is still experimental.
 - Some UI strings/tooltips still need localization cleanup.
