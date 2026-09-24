@@ -110,11 +110,11 @@ function renderDuplicateLocationGroups(groups){
    const head=document.createElement('summary');head.innerHTML=`<code>${esc(loc.path)}</code><span>${esc(t('duplicates.locationFiles',{n:loc.file_count}))}</span>${loc.priority?`<i>${loc.priority>0?'+':''}${loc.priority}</i>`:''}`;section.appendChild(head);
    const files=document.createElement('div');files.className='duplicate-location-files';
    for(const p of loc.files||[]){
-    const b=document.createElement('button');b.type='button';b.className=`duplicate-file dup-marker-${Number(p.logical_index||0)%12}`;b.dataset.logical=String(p.logical_index||0);b.dataset.photoId=String(p.id);
+    const b=document.createElement('button');b.type='button';b.className=`duplicate-file dup-marker-${Number(p.marker_index??p.logical_index??0)%12}`;b.dataset.logical=String(p.logical_id||p.logical_index||0);b.dataset.photoId=String(p.id);
     b.innerHTML=`<img loading="lazy" src="${p.thumbnail}" alt=""><span><b>${esc(p.name||'')}</b><small>${p.width&&p.height?`${p.width}×${p.height} · `:''}${fmtBytes(p.size||0)}</small></span>`;
     b.onclick=e=>{e.stopPropagation();openViewer(p,'duplicates')};
-    b.addEventListener('mouseenter',()=>{for(const peer of wrap.querySelectorAll(`[data-logical="${b.dataset.logical}"]`))peer.classList.add('duplicate-peer')});
-    b.addEventListener('mouseleave',()=>{for(const peer of wrap.querySelectorAll('.duplicate-peer'))peer.classList.remove('duplicate-peer')});
+    b.addEventListener('mouseenter',()=>{for(const peer of grid.querySelectorAll(`[data-logical="${b.dataset.logical}"]`))peer.classList.add('duplicate-peer')});
+    b.addEventListener('mouseleave',()=>{for(const peer of grid.querySelectorAll('.duplicate-peer'))peer.classList.remove('duplicate-peer')});
     files.appendChild(b);
    }
    section.appendChild(files);body.appendChild(section);
