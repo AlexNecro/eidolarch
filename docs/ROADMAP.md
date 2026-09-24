@@ -23,23 +23,24 @@ Eidolarch is a local-first photo triage and curation tool. GPU acceleration is o
 - Folder picker, first-run onboarding, recursive folder counts and Explorer-style `[..]`.
 - Settings tabs, diagnostics, Favorites, named-entity search and PWA shell.
 
-## 2.3 — Duplicate package workspace
+## 2.3 — Duplicate groups
 
-Goal: model how duplicate archives actually occur: whole folders or branches are copied, moved and re-imported.
+Goal: expose where matching files have been copied without mixing this workflow with visual similarity.
 
-- Low-level duplicate identity remains file-based (exact SHA-256 and near/perceptual evidence).
-- Aggregate those identities into **duplicate packages** based on folder/branch overlap.
-- Package UI is a matrix:
-  - columns = duplicate locations/folder branches;
-  - rows = logical photos;
-  - missing cells = files absent from that location.
-- Example: 10 photos in folder A and the same 10 in folder B become one package with 2 columns × 10 rows, not 10 pair groups.
-- Support packages with 3+ locations.
-- Display common count, unique count per location, overlap percentage and reclaimable size.
-- Group-level cleanup removes only confirmed redundant files; unique files are preserved.
-- Path-priority rules recommend which location to keep.
-- Recycle Bin only; no silent destructive cleanup.
-- UI/database update immediately as duplicate relationships disappear after deletion.
+- Current duplicate workspace uses the hierarchy **Duplicate group → Location → File**.
+- In v1 a location is the file's direct physical parent folder.
+- The UI does not depend on SHA-256 details; duplicate identity is isolated behind a replaceable matcher/helper.
+- Groups may overlap: one physical/logical file may participate in more than one meaningful folder relationship.
+- Weak bridge relations are suppressed when the same shared files are already represented through a stronger common location.
+- Matching logical files use stable color markers across locations and highlight their peers on hover.
+- Same-folder duplicates remain representable as one-location groups.
+
+Next:
+- validate grouping on the real archive;
+- add scalable compact/expanded rendering for very large groups;
+- show overlap/unique counts and reclaimable size;
+- use path-priority rules for recommendations;
+- add safe location-level cleanup only after validation: confirmed duplicates only, Recycle Bin, immediate UI refresh.
 
 ## 2.4 — Entities: people and pets
 - Improve object proposals and identity workflow before scaling automation.
