@@ -1228,15 +1228,24 @@ app.mount('/assets', StaticFiles(directory=STATIC), name='assets')
 @app.get('/favicon.ico', include_in_schema=False)
 def favicon(): return FileResponse(STATIC/'icons'/'app.ico', media_type='image/x-icon', headers={'Cache-Control':'public, max-age=86400'})
 
+def _versioned_html(path: Path):
+    # HTML shells contain cache-busting query strings and a visible version badge.
+    # Inject the backend version at serve time so releases cannot drift merely
+    # because one static HTML file missed a mechanical version bump.
+    import re
+    html=path.read_text(encoding='utf-8')
+    html=re.sub(r'2\\.\\d+\\.\\d+', APP_VERSION, html)
+    return Response(html, media_type='text/html', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
+
 @app.get('/graph')
 def graph_page():
-    return FileResponse(STATIC / 'graph.html', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
+    return _versioned_html(STATIC / 'graph.html')
 
 @app.get('/viewer')
-def viewer_page(): return FileResponse(STATIC / 'viewer.html', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
+def viewer_page(): return _versioned_html(STATIC / 'viewer.html')
 
 @app.get('/settings')
-def settings_page(): return FileResponse(STATIC / 'settings.html', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
+def settings_page(): return _versioned_html(STATIC / 'settings.html')
 
 @app.get('/help.css', include_in_schema=False)
 def help_css():
@@ -1245,7 +1254,7 @@ def help_css():
 @app.get('/help')
 def help_page(lang: str = 'ru'):
     safe='ru' if str(lang).lower().startswith('ru') else 'en'
-    return FileResponse(STATIC / 'help' / f'{safe}.html', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
+    return _versioned_html(STATIC / 'help' / f'{safe}.html')
 
 @app.get('/')
-def home(): return FileResponse(STATIC / 'index.html', headers={'Cache-Control':'no-cache, no-store, must-revalidate'})
+def home(): return _versioned_html(STATIC / 'index.html')
