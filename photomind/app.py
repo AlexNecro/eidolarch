@@ -41,7 +41,7 @@ _FS_STATS_CACHE = {}
 _FS_STATS_LOCK = threading.Lock()
 _FS_STATS_TTL = 120.0
 db.init_db()
-APP_VERSION = '2.2.15'
+APP_VERSION = '2.3.0'
 app = FastAPI(title='Eidolarch', version=APP_VERSION)
 
 @app.middleware('http')
@@ -711,6 +711,92 @@ def similar(photo_id: int, limit: int = Query(80, ge=1, le=200)):
 def duplicate_gallery(limit: int = Query(120, ge=1, le=300), offset: int = Query(0, ge=0), sort: str = 'taken_desc'):
     rows, total = db.list_duplicate_photos(limit, offset, sort=sort)
     return {'total': total, 'items': photos_json(rows)}
+
+@app.get('/api/duplicate-location-groups')
+def duplicate_location_groups(limit: int = Query(80, ge=1, le=200), offset: int = Query(0, ge=0)):
+    """First duplicate-package view.
+
+    Uses only the current exact-duplicate contract from db.exact_duplicate_rows().
+    Physical parent directories are locations. We keep the strongest non-redundant
+    location relationships (maximum spanning forest) so a few cross-folder overlaps
+    do not glue otherwise useful groups together.
+    """
+    from collections import defaultdict
+    from itertools import combinations
+
+    rows=[dict(r) for r in db.exact_duplicate_rows()]
+    by_hash=defaultdict(lambda: defaultdict(list))
+    for r in rows:
+        loc=str(Path(r['path']).parent)
+        by_hash[str(r['sha256'])][loc].append(r)
+
+    edge_keys=defaultdict(set)
+    edge_bytes=defaultdict(int)
+    locations=set()
+    for key,locmap in by_hash.items():
+        locs=sorted(locmap.keys(), key=str.casefold)
+        locations.update(locs)
+        if len(locs)<2:
+            continue
+        sample_size=int(next(iter(next(iter(locmap.values())))).get('size') or 0)
+        for a,b in combinations(locs,2):
+            edge=(a,b) if a.casefold()<=b.casefold() else (b,a)
+            edge_keys[edge].add(key)
+            edge_bytes[edge]+=sample_size
+
+    parent={x:x for x in locations}
+    def find(x):
+        while parent[x]!=x:
+            parent[x]=parent[parent[x]]
+            x=parent[x]
+        return x
+    def union(a,b):
+        ra,rb=find(a),find(b)
+        if ra==rb:return False
+        parent[rb]=ra
+        return True
+
+    ranked=sorted(edge_keys, key=lambda e:(-len(edge_keys[e]),-edge_bytes[e],e[0].casefold(),e[1].casefold()))
+    selected=[]
+    for edge in ranked:
+        if union(*edge):
+            selected.append(edge)
+
+    groups=[]
+    for a,b in selected:
+        keys=sorted(edge_keys[(a,b)], key=lambda k:min((x['path'] for loc in by_hash[k].values() for x in loc), key=str.casefold).casefold())
+        locations_json=[]
+        for loc in (a,b):
+            files=[]
+            for logical_index,key in enumerate(keys):
+                for r in by_hash[key].get(loc,[]):
+                    pid=int(r['id'])
+                    files.append({
+                        'id':pid,'name':r.get('name') or Path(r['path']).name,'path':r['path'],
+                        'size':int(r.get('size') or 0),'taken_at':r.get('taken_at'),
+                        'width':r.get('width'),'height':r.get('height'),
+                        'thumbnail':f"/api/photos/{pid}/thumbnail?fv={int(r.get('mtime_ns') or 0)}-{int(r.get('size') or 0)}",
+                        'logical_index':logical_index,
+                    })
+            locations_json.append({
+                'path':loc,
+                'priority':_duplicate_path_score(loc),
+                'file_count':len(files),
+                'files':files,
+            })
+        groups.append({
+            'id':f'g{len(groups)+1}',
+            'logical_count':len(keys),
+            'file_count':sum(x['file_count'] for x in locations_json),
+            'location_count':2,
+            'reclaimable_bytes':sum(int(next(iter(next(iter(by_hash[k].values())))).get('size') or 0) for k in keys),
+            'locations':locations_json,
+        })
+
+    groups.sort(key=lambda g:(-g['logical_count'],-g['reclaimable_bytes'],g['locations'][0]['path'].casefold(),g['locations'][1]['path'].casefold()))
+    total=len(groups)
+    return {'total':total,'groups':groups[offset:offset+limit]}
+
 
 
 @app.get('/api/photos/{photo_id}/info')
