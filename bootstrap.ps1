@@ -1,5 +1,49 @@
+param(
+    [switch]$Repair,
+    [switch]$DebugStartup
+)
+
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
+
+$script:StartClock = [System.Diagnostics.Stopwatch]::StartNew()
+function Write-StartupTrace([string]$message) {
+    if ($DebugStartup) {
+        Write-Host ("[startup {0,8:N3}s] {1}" -f $script:StartClock.Elapsed.TotalSeconds, $message)
+    }
+}
+
+if ($DebugStartup) {
+    New-Item -ItemType Directory -Force -Path (Join-Path $PSScriptRoot 'data') | Out-Null
+    $logPath = Join-Path $PSScriptRoot 'data\startup-debug.log'
+    try { Start-Transcript -Path $logPath -Force | Out-Null } catch {}
+    $env:EIDOLARCH_DEBUG_STARTUP = '1'
+    $env:PYTHONPROFILEIMPORTTIME = '1'
+    Write-StartupTrace "debug transcript: $logPath"
+}
+
+$venvPy = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
+$runtimeMarker = Join-Path $PSScriptRoot '.venv\.eidolarch_runtime_v10'
+$requirementsHash = if (Test-Path 'requirements.txt') { (Get-FileHash 'requirements.txt' -Algorithm SHA256).Hash.ToLowerInvariant() } else { '' }
+$runtimeStamp = "v10:$requirementsHash"
+
+# Normal launches take the fast path. A full environment probe is reserved for
+# first install, changed requirements, explicit repair, or a genuine startup failure.
+if (-not $Repair -and (Test-Path $venvPy) -and (Test-Path $runtimeMarker)) {
+    $stamp = (Get-Content $runtimeMarker -Raw -ErrorAction SilentlyContinue).Trim()
+    if ($stamp -eq $runtimeStamp) {
+        Write-StartupTrace 'runtime stamp valid; skipping dependency probes'
+        & $venvPy launcher.py
+        $quickCode = $LASTEXITCODE
+        if ($quickCode -ne 20) {
+            if ($DebugStartup) { try { Stop-Transcript | Out-Null } catch {} }
+            exit $quickCode
+        }
+        Write-Warning '[Eidolarch] Application failed during startup. Running one automatic environment repair...'
+        Write-StartupTrace 'launcher reported startup failure; entering repair path'
+        $Repair = $true
+    }
+}
 
 function Test-Python([string]$exe, [string[]]$args = @()) {
     try {
@@ -54,6 +98,7 @@ function Invoke-Python($py, [string[]]$arguments) {
     if ($LASTEXITCODE -ne 0) { throw "Python command failed with exit code $LASTEXITCODE" }
 }
 
+Write-StartupTrace 'locating system Python'
 $py = Find-Python
 if (-not $py) {
     $winget = Get-Command winget -ErrorAction SilentlyContinue
@@ -73,6 +118,7 @@ if (-not $py) {
 }
 
 Write-Host "[Eidolarch] Using Python: $($py.Display)"
+Write-StartupTrace 'system Python located'
 Invoke-Python $py @('-c', 'import sys; print(sys.version.split()[0]); print(sys.executable)')
 
 if (-not (Test-Path '.venv\Scripts\python.exe')) {
@@ -129,15 +175,18 @@ function Install-TorchStack([string]$indexUrl) {
     Invoke-VenvPip @('install', '--upgrade', '--force-reinstall', 'torch', 'torchvision', '--index-url', $indexUrl) | Out-Null
 }
 
-$depsMarker = '.venv\.eidolarch_deps_v8'
-if (-not (Test-Path $depsMarker)) {
-    Write-Host '[Eidolarch] Installing application dependencies...'
+$depsMarker = '.venv\.eidolarch_deps_v9'
+Write-StartupTrace 'checking application dependency marker'
+$depsStamp = if (Test-Path $depsMarker) { (Get-Content $depsMarker -Raw -ErrorAction SilentlyContinue).Trim() } else { '' }
+if ($Repair -or $depsStamp -ne $requirementsHash) {
+    Write-Host '[Eidolarch] Installing/repairing application dependencies...'
     Invoke-VenvPip @('install', '--upgrade', 'pip') | Out-Null
     Invoke-VenvPip @('install', '-r', 'requirements.txt') | Out-Null
-    Set-Content -Path $depsMarker -Value 'ok' -Encoding Ascii
+    Set-Content -Path $depsMarker -Value $requirementsHash -Encoding Ascii
 }
 
 # Prefer CUDA when an NVIDIA GPU is present. A CPU fallback is still allowed.
+Write-StartupTrace 'probing torch/CUDA runtime (repair/install path)'
 $nvidia = Get-Command nvidia-smi -ErrorAction SilentlyContinue
 $torchPresent = Test-VenvPythonCode 'import torch'
 $cudaReady = $false
@@ -201,6 +250,7 @@ if (-not (Test-TorchStack)) {
     throw 'Eidolarch could not import torch + torchvision + AutoImageProcessor after repair. See the console output above.'
 }
 
+Write-StartupTrace 'running full torch/torchvision/transformers verification'
 Write-Host '[Eidolarch] Runtime check:'
 # Avoid quoted string literals in the -c payload. Windows PowerShell 5/native
 # argument quoting may otherwise strip embedded quotes before python.exe sees them.
@@ -219,5 +269,9 @@ if ($missingSourceFiles.Count -gt 0) {
     throw ("Eidolarch source tree is incomplete. Missing: " + ($missingSourceFiles -join ', ') + ". If this is a Git working copy, run: git restore photomind")
 }
 
+Set-Content -Path $runtimeMarker -Value $runtimeStamp -Encoding Ascii
+Write-StartupTrace 'runtime stamp updated; launching application'
 & $venvPy launcher.py
-exit $LASTEXITCODE
+$finalCode = $LASTEXITCODE
+if ($DebugStartup) { try { Stop-Transcript | Out-Null } catch {} }
+exit $finalCode

@@ -72,3 +72,11 @@ Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, 
 - Grouping keeps strong overlapping folder relations while suppressing weak redundant cross-folder bridges.
 - Same-directory duplicates remain visible as one-location groups.
 - Group-level deletion is intentionally not included in v1.
+
+## 2.3.1 Duplicate actions
+
+- Added logical/physical/additional-copy counters per duplicate location.
+- Added file- and location-level duplicate actions.
+- Added safe duplicate deletion preview and execution endpoints with server-side revalidation.
+- Safe deletion preserves at least one existing exact copy outside the requested deletion set.
+- Added visual grouping for additional physical copies of the same logical duplicate inside a location.

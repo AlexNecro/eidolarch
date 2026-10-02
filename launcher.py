@@ -11,12 +11,22 @@ import urllib.request
 HOST = os.environ.get("PHOTOMIND_HOST", "0.0.0.0")
 PORT = int(os.environ.get("PHOTOMIND_PORT", "8765"))
 LOCAL_URL = f"http://127.0.0.1:{PORT}"
-APP_VERSION = "2.3.0"
+APP_VERSION = "2.3.4"
+DEBUG_STARTUP = os.environ.get("EIDOLARCH_DEBUG_STARTUP") == "1"
+_START = time.perf_counter()
+
+def trace(message: str):
+    if DEBUG_STARTUP:
+        print(f"[startup {time.perf_counter()-_START:8.3f}s] launcher: {message}", flush=True)
 
 
-def wait_ready(timeout: float = 40.0) -> bool:
+
+def wait_ready(server, timeout: float = 40.0) -> bool:
     deadline = time.time() + timeout
     while time.time() < deadline:
+        if server.poll() is not None:
+            trace(f"server exited before health check, code={server.returncode}")
+            return False
         try:
             with urllib.request.urlopen(f"{LOCAL_URL}/api/health", timeout=1) as r:
                 if r.status == 200:
@@ -48,15 +58,22 @@ def find_browser() -> str | None:
 def main() -> int:
     env = os.environ.copy()
     env.setdefault("PYTHONUNBUFFERED", "1")
+    trace("starting uvicorn child")
+    server_args = [sys.executable]
+    if DEBUG_STARTUP:
+        server_args += ["-X", "importtime"]
+    server_args += ["-m", "uvicorn", "photomind.app:app", "--host", HOST, "--port", str(PORT)]
     server = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "photomind.app:app", "--host", HOST, "--port", str(PORT)],
+        server_args,
         cwd=os.path.dirname(os.path.abspath(__file__)),
         env=env,
     )
     try:
-        if not wait_ready():
-            print("Eidolarch server did not start in time.")
-            return 2
+        trace("waiting for /api/health")
+        if not wait_ready(server):
+            print("Eidolarch server did not start correctly.")
+            return 20
+        trace("health check OK")
 
         browser = find_browser()
         if browser:
@@ -64,6 +81,7 @@ def main() -> int:
             launch_url = f"{LOCAL_URL}/?v={APP_VERSION}&launch={time.time_ns()}"
             args = [browser, f"--app={launch_url}", f"--user-data-dir={profile_dir}", "--no-first-run"]
             subprocess.Popen(args)
+            trace("application window launched")
         else:
             import webbrowser
             webbrowser.open(LOCAL_URL)

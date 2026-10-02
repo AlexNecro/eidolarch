@@ -2,7 +2,7 @@
 
 Eidolarch is a local-first Windows photo gallery and cleanup tool focused on large personal photo archives: browse folders, find duplicates, search by visual meaning, inspect metadata, and gradually build named people/pet entities without uploading the library to a cloud service.
 
-Current version: **2.3.0**.
+Current version: **2.3.4**.
 
 ## What Eidolarch can do now
 
@@ -33,11 +33,11 @@ The project is still experimental. Current priorities:
    - current v2.3 workspace groups matching files as **Group → Location → File**;
    - locations are direct physical parent folders in the first version;
    - matching files keep the same visual marker across locations;
-   - group-level cleanup is intentionally deferred until grouping is validated on the real library.
+   - safe file/location/group cleanup uses preview, exact-copy revalidation and the Windows Recycle Bin.
 
 3. **Named entities**
    - `@name` exact entity search and autocomplete are already implemented;
-   - next: duplicate-animal suppression, SigLIP crop classification for dog/cat, face gating for people and candidate review.
+   - detector-v4 now verifies person/cat/dog crops with SigLIP; next: face gating for people, pet identity prototypes and candidate review.
 
 4. **Product packaging**
    - hide the local backend in normal use;
@@ -97,7 +97,7 @@ Processing is layered:
 
 ## Development / diagnostics
 
-Use `run_console.bat` to keep the backend console visible.
+Use `run.bat` for normal fast startup. Use `repair.bat` for an explicit environment repair and `debug.bat` to capture startup timings/import profiling in `data/startup-debug.log`. `run_console.bat` remains available as a simple console launcher.
 
 The application includes diagnostics for:
 - AI/runtime state;
@@ -119,13 +119,15 @@ Developer-oriented documents:
 - [`UX_AUDIT.md`](docs/UX_AUDIT.md)
 
 Release notes:
+- [`RELEASE_NOTES_2.3.4.md`](docs/RELEASE_NOTES_2.3.4.md)
+- [`RELEASE_NOTES_2.3.3.md`](docs/RELEASE_NOTES_2.3.3.md)
 - [`RELEASE_NOTES_2.3.0.md`](docs/RELEASE_NOTES_2.3.0.md)
 
 ## Known experimental areas
 
 - Named people/pet recognition is still experimental.
 - Similar-photo ranking and performance are still being tuned.
-- Duplicate groups are now experimental v1; bulk group cleanup is not enabled yet.
+- Duplicate groups remain experimental, but safe preferred-location group cleanup is enabled with confirmation and Recycle Bin protection.
 - Semantic search can return weak results for ambiguous short queries.
 - OCR is not implemented yet; `@entity` search is implemented but the entity-recognition pipeline is still experimental.
 - Some UI strings/tooltips still need localization cleanup.

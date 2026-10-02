@@ -3,7 +3,9 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
 import threading
+import time
 import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -186,8 +188,12 @@ class EmbeddingManager:
 
     def _probe_runtime(self):
         self.state = ModelState()
+        started = time.perf_counter()
+        debug = os.environ.get("EIDOLARCH_DEBUG_STARTUP") == "1"
         try:
             import torch
+            if debug:
+                print(f"[startup {time.perf_counter()-started:8.3f}s] ai: torch imported", flush=True)
             self.state.torch_version = torch.__version__
             self.state.torch_cuda_version = getattr(torch.version, "cuda", None)
             self.state.cuda_available = bool(torch.cuda.is_available())
@@ -197,6 +203,8 @@ class EmbeddingManager:
                 self.state.vram_total_gb = round(torch.cuda.get_device_properties(0).total_memory / 1024**3, 2)
             else:
                 self.state.device = "cpu"; self.state.device_name = "CPU"
+            if debug:
+                print(f"[startup {time.perf_counter()-started:8.3f}s] ai: CUDA probe complete ({self.state.device})", flush=True)
         except Exception as e:
             self.state.cuda_available = False; self.state.device = "cpu"; self.state.device_name = "CPU"
             self.state.error = f"PyTorch: {type(e).__name__}: {e}"

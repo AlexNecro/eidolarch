@@ -41,7 +41,7 @@ _FS_STATS_CACHE = {}
 _FS_STATS_LOCK = threading.Lock()
 _FS_STATS_TTL = 120.0
 db.init_db()
-APP_VERSION = '2.3.0'
+APP_VERSION = '2.3.4'
 app = FastAPI(title='Eidolarch', version=APP_VERSION)
 
 @app.middleware('http')
@@ -86,6 +86,10 @@ class FileOpIn(BaseModel):
     photo_ids: list[int]
     destination: str | None = None
     new_name: str | None = None
+
+class DuplicateGroupPlanIn(BaseModel):
+    photo_ids: list[int]
+    keep_path: str
 
 class FolderOpIn(BaseModel):
     folder_id: int
@@ -712,6 +716,10 @@ def duplicate_gallery(limit: int = Query(120, ge=1, le=300), offset: int = Query
     rows, total = db.list_duplicate_photos(limit, offset, sort=sort)
     return {'total': total, 'items': photos_json(rows)}
 
+@app.get('/api/duplicates/summary')
+def duplicate_summary():
+    return _duplicate_global_summary()
+
 @app.get('/api/duplicate-location-groups')
 def duplicate_location_groups(limit: int = Query(80, ge=1, le=200), offset: int = Query(0, ge=0)):
     """Group current exact duplicates by physical parent directory.
@@ -796,10 +804,13 @@ def duplicate_location_groups(limit: int = Query(80, ge=1, le=200), offset: int 
                         'logical_id':hashlib.blake2s(key.encode('utf-8'),digest_size=8).hexdigest(),
                         'marker_index':int(hashlib.blake2s(key.encode('utf-8'),digest_size=2).hexdigest(),16)%12,
                     })
+            logical_here=len({x['logical_id'] for x in files})
             locations_json.append({
                 'path':loc,
                 'priority':_duplicate_path_score(loc),
                 'file_count':len(files),
+                'logical_count':logical_here,
+                'extra_copy_count':max(0,len(files)-logical_here),
                 'files':files,
             })
         reclaimable=0
@@ -837,19 +848,71 @@ def photo_info(photo_id: int):
     }
 
 
-def _duplicate_path_score(path: str) -> int:
+def _duplicate_priority_rules():
     raw=db.get_settings(['duplicate_priority_rules']).get('duplicate_priority_rules','')
-    score=0; p=os.path.normcase(os.path.normpath(path))
-    for line in raw.splitlines():
+    rules=[]
+    for order,line in enumerate(raw.splitlines()):
         line=line.strip()
         if not line or line.startswith('#'): continue
         try:
-            weight_s,pattern=line.split('|',1); weight=int(weight_s.strip()); pattern=os.path.normcase(os.path.normpath(pattern.strip()))
+            weight_s,pattern=line.split('|',1)
+            weight=int(weight_s.strip())
+            pattern=os.path.normcase(os.path.normpath(pattern.strip()))
         except Exception:
             continue
-        if pattern and (p==pattern or p.startswith(pattern+os.sep)):
-            score += weight
-    return score
+        if pattern:
+            rules.append({'weight':weight,'path':pattern,'order':order})
+    return rules
+
+def _duplicate_path_score(path: str) -> int:
+    """Return the explicit storage preference for a path.
+
+    The persisted ``weight|path`` format is kept for compatibility, but ordered
+    rules are interpreted as branch preferences. If nested rules match, the most
+    specific branch wins instead of accumulating weights from every parent.
+    """
+    p=os.path.normcase(os.path.normpath(path))
+    matches=[]
+    for rule in _duplicate_priority_rules():
+        pattern=rule['path']
+        if p==pattern or p.startswith(pattern+os.sep):
+            matches.append(rule)
+    if not matches:
+        return 0
+    winner=max(matches,key=lambda r:(len(r['path']),-r['order']))
+    return int(winner['weight'])
+
+def _duplicate_global_summary():
+    """Return exact-duplicate reclaim totals without double-counting UI groups."""
+    from collections import defaultdict
+    rows=[dict(r) for r in db.exact_duplicate_rows()]
+    by_hash=defaultdict(list)
+    for r in rows:
+        path=Path(r['path'])
+        if path.exists():
+            by_hash[str(r['sha256'])].append(r)
+    duplicate_sets=0; files=0; candidates=0; reclaimable=0
+    for copies in by_hash.values():
+        if len(copies)<2:
+            continue
+        duplicate_sets+=1
+        files+=len(copies)
+        ranked=sorted(copies,key=lambda r:(
+            _duplicate_path_score(str(Path(r['path']).parent)),
+            int((r.get('width') or 0)*(r.get('height') or 0)),
+            int(r.get('size') or 0),
+            1 if r.get('taken_at') else 0,
+            str(r.get('path') or '').casefold(),
+        ),reverse=True)
+        for r in ranked[1:]:
+            candidates+=1
+            reclaimable+=int(r.get('size') or 0)
+    return {
+        'duplicate_sets':duplicate_sets,
+        'file_count':files,
+        'candidate_count':candidates,
+        'reclaimable_bytes':reclaimable,
+    }
 
 @app.get('/api/photos/{photo_id}/duplicates')
 def duplicates(photo_id: int):
@@ -1057,6 +1120,120 @@ def add_manual_tags(body:TagsIn):
 def remove_manual_tags(body:TagsIn):
     if body.tag_id is None: raise HTTPException(400,'Укажите tag_id')
     return {'removed':db.remove_manual_tag(body.photo_ids,body.tag_id)}
+
+def _duplicate_safe_delete_plan(photo_ids: list[int]):
+    requested=[]
+    seen=set()
+    for raw in photo_ids:
+        pid=int(raw)
+        if pid not in seen:
+            requested.append(pid); seen.add(pid)
+    requested_set=set(requested)
+    deletable=[]; skipped=[]; total_bytes=0; locations=set()
+    for pid in requested:
+        row=db.get_photo(pid)
+        if not row:
+            skipped.append({'id':pid,'reason':'missing-record'}); continue
+        peers=db.photo_ids_by_hash(pid)
+        outside=[]
+        for peer_id in peers:
+            if peer_id in requested_set:
+                continue
+            peer=db.get_photo(peer_id)
+            if peer and Path(peer['path']).exists():
+                outside.append(peer_id)
+        if not outside:
+            skipped.append({'id':pid,'reason':'last-copy'}); continue
+        path=Path(row['path'])
+        if not path.exists():
+            skipped.append({'id':pid,'reason':'missing-file'}); continue
+        deletable.append(pid)
+        total_bytes+=int(row['size'] or path.stat().st_size)
+        locations.add(str(path.parent))
+    return {
+        'requested_count':len(requested),
+        'deletable_count':len(deletable),
+        'skipped_count':len(skipped),
+        'bytes':total_bytes,
+        'locations':sorted(locations,key=str.casefold),
+        'photo_ids':deletable,
+        'skipped':skipped,
+    }
+
+def _duplicate_group_keep_plan(photo_ids: list[int], keep_path: str):
+    """Plan deletion outside keep_path only for hashes represented inside keep_path.
+
+    This deliberately operates on the displayed group's physical IDs. It never
+    expands deletion to files that were not part of the user's current group view.
+    The final delete endpoint re-runs the ordinary safe-delete guard as well.
+    """
+    keep_norm=os.path.normcase(os.path.normpath(keep_path.strip()))
+    requested=[]; seen=set()
+    for raw in photo_ids:
+        pid=int(raw)
+        if pid not in seen:
+            requested.append(pid); seen.add(pid)
+    keep_ids=[]; outside_ids=[]
+    for pid in requested:
+        row=db.get_photo(pid)
+        if not row: continue
+        parent=os.path.normcase(os.path.normpath(str(Path(row['path']).parent)))
+        (keep_ids if parent==keep_norm else outside_ids).append(pid)
+    keep_hash_members=set()
+    for pid in keep_ids:
+        keep_hash_members.add(pid)
+        keep_hash_members.update(db.photo_ids_by_hash(pid))
+    candidates=[pid for pid in outside_ids if pid in keep_hash_members]
+    missing_count=max(0,len(outside_ids)-len(candidates))
+    plan=_duplicate_safe_delete_plan(candidates)
+    plan['keep_path']=keep_path
+    plan['missing_in_preferred_count']=missing_count
+    return plan
+
+@app.post('/api/duplicates/group-preview')
+def duplicate_group_preview(body:DuplicateGroupPlanIn,request:Request):
+    if request.client and request.client.host not in ('127.0.0.1','::1'):
+        raise HTTPException(403,'Файловые операции доступны только локально')
+    return _duplicate_group_keep_plan(body.photo_ids,body.keep_path)
+
+@app.post('/api/duplicates/group-trash-safe')
+def duplicate_group_trash_safe(body:DuplicateGroupPlanIn,request:Request):
+    if request.client and request.client.host not in ('127.0.0.1','::1'):
+        raise HTTPException(403,'Файловые операции доступны только локально')
+    plan=_duplicate_group_keep_plan(body.photo_ids,body.keep_path)
+    ids=plan['photo_ids']
+    if not ids:
+        return plan | {'items':[]}
+    # Revalidate immediately before the destructive operation.
+    safety=_duplicate_safe_delete_plan(ids)
+    ids=safety['photo_ids']
+    if not ids:
+        return plan | safety | {'items':[]}
+    try:
+        items=system_ops.trash_photos(ids)
+        return plan | safety | {'items':items}
+    except Exception as e:
+        raise HTTPException(400,str(e))
+
+@app.post('/api/duplicates/trash-preview')
+def duplicate_trash_preview(body:FileOpIn,request:Request):
+    if request.client and request.client.host not in ('127.0.0.1','::1'):
+        raise HTTPException(403,'Файловые операции доступны только локально')
+    return _duplicate_safe_delete_plan(body.photo_ids)
+
+@app.post('/api/duplicates/trash-safe')
+def duplicate_trash_safe(body:FileOpIn,request:Request):
+    if request.client and request.client.host not in ('127.0.0.1','::1'):
+        raise HTTPException(403,'Файловые операции доступны только локально')
+    plan=_duplicate_safe_delete_plan(body.photo_ids)
+    ids=plan['photo_ids']
+    if not ids:
+        return plan | {'items':[]}
+    try:
+        items=system_ops.trash_photos(ids)
+        return plan | {'items':items}
+    except Exception as e:
+        raise HTTPException(400,str(e))
 
 @app.post('/api/files/copy')
 def file_copy(body:FileOpIn,request:Request):

@@ -12,7 +12,7 @@ from .ai import embedder
 from .diagnostics import logger, exception as log_exception
 
 DETECTOR_MODEL_ID = "hustvl/yolos-tiny"
-DETECTOR_SCAN_KEY = "hustvl/yolos-tiny:eidolarch-detector-v3"
+DETECTOR_SCAN_KEY = "hustvl/yolos-tiny:eidolarch-detector-v4"
 DETECTOR_MODEL = DETECTOR_SCAN_KEY
 TARGET_LABELS = {"person": "person", "cat": "cat", "dog": "dog"}
 DISPLAY_KIND = {"person": "entity.kind.person", "cat": "entity.kind.cat", "dog": "entity.kind.dog"}
@@ -24,6 +24,17 @@ NMS_IOU_THRESHOLD = 0.50
 CONTAINMENT_OVERLAP_THRESHOLD = 0.90
 CONTAINMENT_MAX_AREA_RATIO = 0.65
 CONTAINMENT_SCORE_TOLERANCE = 0.15
+
+# detector-v4: YOLOS proposes boxes; SigLIP verifies the three nameable entity classes.
+# The verifier is intentionally conservative: disagreement changes the label only when
+# the semantic margin is meaningful, otherwise YOLOS remains authoritative.
+ENTITY_CLASS_PROMPTS = {
+    "person": ("a photo of a person", "a human person"),
+    "dog": ("a photo of a dog", "a pet dog"),
+    "cat": ("a photo of a cat", "a pet cat"),
+}
+VERIFY_MARGIN_PET = 0.025
+VERIFY_MARGIN_PERSON = 0.045
 
 
 @dataclass
@@ -56,6 +67,8 @@ class EntityIndexer:
         self._load_lock = threading.Lock()
         self._infer_lock = threading.Lock()
         self._forced_device = None
+        self._class_vectors = {}
+        self._class_vector_key = None
 
     @property
     def scan_key(self) -> tuple[str, str, str]:
@@ -272,6 +285,38 @@ class EntityIndexer:
         ]
         return diagnostics
 
+    def _semantic_class_vectors(self):
+        key = (embedder.provider_key, embedder.model_id)
+        if self._class_vector_key == key and self._class_vectors:
+            return self._class_vectors
+        vectors = {}
+        for kind, prompts in ENTITY_CLASS_PROMPTS.items():
+            parts = [embedder.embed_text(prompt) for prompt in prompts]
+            v = np.mean(np.stack(parts), axis=0).astype(np.float32)
+            n = float(np.linalg.norm(v))
+            vectors[kind] = v / n if n else v
+        self._class_vector_key = key
+        self._class_vectors = vectors
+        return vectors
+
+    def verify_kind(self, detector_kind: str, vector: np.ndarray):
+        """Conservatively verify person/cat/dog using the active semantic model."""
+        if detector_kind not in ENTITY_CLASS_PROMPTS:
+            return detector_kind, {}
+        try:
+            vectors = self._semantic_class_vectors()
+            scores = {kind: float(np.dot(vector, ref)) for kind, ref in vectors.items()}
+            ordered = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            best_kind, best_score = ordered[0]
+            detector_score = scores.get(detector_kind, -1.0)
+            margin = best_score - detector_score
+            threshold = VERIFY_MARGIN_PERSON if detector_kind == 'person' or best_kind == 'person' else VERIFY_MARGIN_PET
+            final_kind = best_kind if best_kind != detector_kind and margin >= threshold else detector_kind
+            return final_kind, {'scores': scores, 'margin': margin, 'changed': final_kind != detector_kind}
+        except Exception as e:
+            logger().warning('Semantic entity verification failed: %s: %s', type(e).__name__, e)
+            return detector_kind, {'error': f'{type(e).__name__}: {e}'}
+
     def _fallback_cpu(self, reason: str):
         if self.state.device == "cpu":
             return False
@@ -350,7 +395,14 @@ class EntityIndexer:
                     pad_x, pad_y = bw * 0.08, bh * 0.08
                     crop = image.crop((max(0, x1 - pad_x), max(0, y1 - pad_y), min(w, x2 + pad_x), min(h, y2 + pad_y)))
                     vector = embedder.embed_image(crop)
-                    rows.append((kind, score, x1, y1, x2, y2, vector))
+                    verified_kind, verification = self.verify_kind(kind, vector)
+                    if verification.get('changed'):
+                        logger().info(
+                            'Entity class corrected photo=%s %s->%s margin=%.4f scores=%s',
+                            photo_id, kind, verified_kind, float(verification.get('margin') or 0.0),
+                            {k: round(v, 4) for k, v in verification.get('scores', {}).items()},
+                        )
+                    rows.append((verified_kind, score, x1, y1, x2, y2, vector))
                 # Preserve manually assigned identities across a re-detect when the
                 # new box still strongly overlaps the old object of the same kind.
                 old_named = [dict(x) for x in db.list_detections(photo_id) if x['entity_id'] is not None]
