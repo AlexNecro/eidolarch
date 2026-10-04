@@ -41,7 +41,7 @@ _FS_STATS_CACHE = {}
 _FS_STATS_LOCK = threading.Lock()
 _FS_STATS_TTL = 120.0
 db.init_db()
-APP_VERSION = '2.3.4'
+APP_VERSION = '2.3.5'
 app = FastAPI(title='Eidolarch', version=APP_VERSION)
 
 @app.middleware('http')
@@ -1316,7 +1316,7 @@ def backup(request:Request):
 def locale_file(lang:str):
     lang='ru' if lang.lower().startswith('ru') else 'en'
     p=BASE/'locales'/f'{lang}.json'
-    return FileResponse(p,media_type='application/json')
+    return FileResponse(p,media_type='application/json',headers={'Cache-Control':'no-store, no-cache, must-revalidate'})
 
 @app.post('/api/system/recycle-bin')
 def open_recycle_bin(request: Request):

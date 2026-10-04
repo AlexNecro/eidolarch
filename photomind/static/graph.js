@@ -5,7 +5,7 @@ async function api(url){const r=await fetch(url);if(!r.ok)throw new Error(r.stat
 function currentLang(){const v=localStorage.getItem('eidolarch.language')||'auto';return v==='auto'?((navigator.language||'en').toLowerCase().startsWith('ru')?'ru':'en'):v}
 function t(k){return L[k]||LF[k]||k}
 function applyTheme(){const v=localStorage.getItem('eidolarch.theme')||'system',theme=v==='system'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):v;document.documentElement.dataset.theme=theme}
-async function loadLocale(){const lang=currentLang();LF=await api('/api/locales/en.json');L=lang==='en'?LF:await api('/api/locales/'+lang+'.json');document.documentElement.lang=lang;$('#graphTitle').textContent=t('graph.title');$('#graphHint').textContent=t('graph.hint')}
+async function loadLocale(){const lang=currentLang();LF=await api('/api/locales/en.json?v=2.3.5');L=lang==='en'?LF:await api('/api/locales/'+lang+'.json?v=2.3.5');document.documentElement.lang=lang;$('#graphTitle').textContent=t('graph.title');$('#graphHint').textContent=t('graph.hint')}
 function draw(data){
  const box=$('#graphCanvas');box.innerHTML='';if(!data.nodes?.length){box.textContent='—';return}
  const w=Math.max(900,box.clientWidth||1200),h=Math.max(620,box.clientHeight||760),cx=w/2,cy=h/2;

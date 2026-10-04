@@ -1,4 +1,4 @@
-# Eidolarch 2.3.4
+# Eidolarch 2.3.5
 
 Duplicate workspace completion and runtime cleanup.
 
