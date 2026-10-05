@@ -11,7 +11,7 @@ import urllib.request
 HOST = os.environ.get("PHOTOMIND_HOST", "0.0.0.0")
 PORT = int(os.environ.get("PHOTOMIND_PORT", "8765"))
 LOCAL_URL = f"http://127.0.0.1:{PORT}"
-APP_VERSION = "2.3.5"
+APP_VERSION = "2.3.7"
 DEBUG_STARTUP = os.environ.get("EIDOLARCH_DEBUG_STARTUP") == "1"
 _START = time.perf_counter()
 

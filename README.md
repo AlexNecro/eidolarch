@@ -1,8 +1,8 @@
 # Eidolarch
 
-Eidolarch is a local-first Windows photo gallery and cleanup tool focused on large personal photo archives: browse folders, find duplicates, search by visual meaning, inspect metadata, and gradually build named people/pet entities without uploading the library to a cloud service.
+Eidolarch is a local-first Windows photo library and cleanup tool focused on large personal archives: browse folders, find exact duplicates, search by visual meaning, inspect metadata, and gradually build named people/pet entities without uploading the library to a cloud service. Video becomes a first-class media type in the 2.4 milestone.
 
-Current version: **2.3.5**.
+Current version: **2.3.7**.
 
 ## What Eidolarch can do now
 
@@ -39,10 +39,10 @@ The project is still experimental. Current priorities:
    - `@name` exact entity search and autocomplete are already implemented;
    - detector-v4 now verifies person/cat/dog crops with SigLIP; next: face gating for people, pet identity prototypes and candidate review.
 
-4. **Product packaging**
-   - hide the local backend in normal use;
-   - relaunch the client against an already-running backend;
-   - keep visible console mode for development only.
+4. **Next milestones**
+   - 2.4: video foundation with Photos / Videos / All, ffmpeg/ffprobe, video viewer and exact video duplicates;
+   - 2.5: conventional Windows installer/application packaging;
+   - later: Similarity, Series, Best-shot and mature People/Pets workflows.
 
 The detailed active backlog is in [`docs/NEXT_VERSION.md`](docs/NEXT_VERSION.md).
 
@@ -97,7 +97,7 @@ Processing is layered:
 
 ## Development / diagnostics
 
-Use `run.bat` for normal fast startup. Use `repair.bat` for an explicit environment repair and `debug.bat` to capture startup timings/import profiling in `data/startup-debug.log`. `run_console.bat` remains available as a simple console launcher.
+Use `run.bat` for normal fast startup. Use `repair.bat` for an explicit environment repair and `debug.bat` to capture startup timings/import profiling in `data/startup-debug.log`.
 
 The application includes diagnostics for:
 - AI/runtime state;
@@ -119,8 +119,13 @@ Developer-oriented documents:
 - [`UX_AUDIT.md`](docs/UX_AUDIT.md)
 
 Release notes:
+- [`RELEASE_NOTES_2.3.7.md`](docs/RELEASE_NOTES_2.3.7.md)
+- [`RELEASE_NOTES_2.3.6.md`](docs/RELEASE_NOTES_2.3.6.md)
 - [`RELEASE_NOTES_2.3.5.md`](docs/RELEASE_NOTES_2.3.5.md)
+- [`RELEASE_NOTES_2.3.4.md`](docs/RELEASE_NOTES_2.3.4.md)
 - [`RELEASE_NOTES_2.3.3.md`](docs/RELEASE_NOTES_2.3.3.md)
+- [`RELEASE_NOTES_2.3.2.md`](docs/RELEASE_NOTES_2.3.2.md)
+- [`RELEASE_NOTES_2.3.1.md`](docs/RELEASE_NOTES_2.3.1.md)
 - [`RELEASE_NOTES_2.3.0.md`](docs/RELEASE_NOTES_2.3.0.md)
 
 ## Known experimental areas
@@ -130,7 +135,7 @@ Release notes:
 - Duplicate groups remain experimental, but safe preferred-location group cleanup is enabled with confirmation and Recycle Bin protection.
 - Semantic search can return weak results for ambiguous short queries.
 - OCR is not implemented yet; `@entity` search is implemented but the entity-recognition pipeline is still experimental.
-- Some UI strings/tooltips still need localization cleanup.
+- Video is not supported yet; it is the primary 2.4 milestone.
 
 ## Safety of file operations
 

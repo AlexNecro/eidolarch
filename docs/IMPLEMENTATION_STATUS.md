@@ -1,4 +1,4 @@
-# Eidolarch 2.2.1 implementation status
+# Eidolarch implementation status
 
 ## Implemented in this release
 - Product branding switched to Eidolarch.
@@ -6,14 +6,14 @@
 - New installs use `data/eidolarch.sqlite3`; `EIDOLARCH_DATA` is supported with `PHOTOMIND_DATA` fallback.
 - Eco / Balanced / Performance indexing profiles, with compatibility mapping from old Background / Max values.
 - QR icon for LAN access; existing LAN popup keeps URL/copy/open/QR actions.
-- Duplicate-mode context title is now “Duplicate groups” instead of repeating the active “Duplicates” tab.
+- Duplicate-mode no longer shows a redundant context title beside the active “Duplicates” tab.
 - Duplicate hover loads current file path plus up to two duplicate paths and an overflow count.
 - Standalone viewer: wheel zoom, drag pan, 100%, Fit, fullscreen, side-panel toggle and shortcuts.
 
 ## Existing experimental areas
 - Object detector / people-pet indexing remains experimental and must fail fast instead of producing thousands of identical errors.
 - Auto-tags remain secondary derived metadata; named people/pets will become first-class entities in later releases.
-- Similarity grouping, series and best-shot selection are roadmap items for 2.4–2.6.
+- Video foundation is the 2.4 milestone; Windows application packaging is 2.5; Similarity/Series/Best-shot follow in 2.6–2.8.
 
 ## 2.2.1
 Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, parent navigation, sticky controls, Grid/Content/Details views, settings tabs, public URL for network QR, PWA shell, mobile viewer panel default-hidden, scroll-to-top and first duplicate path-priority scoring.
@@ -80,3 +80,21 @@ Implemented the UX-foundation pass: folder picker/onboarding, recursive counts, 
 - Added safe duplicate deletion preview and execution endpoints with server-side revalidation.
 - Safe deletion preserves at least one existing exact copy outside the requested deletion set.
 - Added visual grouping for additional physical copies of the same logical duplicate inside a location.
+
+
+## 2.3.7 Duplicate Workspace UX/safety fix
+
+- Removed the redundant Duplicate Workspace context title.
+- Removed obsolete `run_console.bat`.
+- Explicit storage priority remains the primary preferred-location signal; folder depth now breaks ties in favor of more specific subfolders.
+- One-location duplicate groups hide preferred-location / “remove from others” controls.
+- One-location groups can safely remove additional physical exact copies while preserving one copy per logical file.
+- Local-copy cleanup shows a preview and revalidates exact-copy safety immediately before Recycle Bin deletion.
+
+
+## 2.3.7 Duplicate Workspace final polish
+
+- Same-folder exact-copy cleanup keeps the oldest physical file by filesystem creation time; filenames are not used as the decision rule.
+- Removed redundant root/special-mode breadcrumb labels next to the main navigation buttons.
+- `Reset all` is hidden in Favorites and Duplicates, where explicit mode navigation already provides the exit path.
+- Documentation and roadmap were renumbered around 2.4 Video foundation and 2.5 Windows application packaging.

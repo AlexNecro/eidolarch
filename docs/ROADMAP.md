@@ -1,93 +1,88 @@
 # Eidolarch roadmap
 
-Eidolarch is a local-first photo triage and curation tool. GPU acceleration is optional; the product must remain useful on a normal CPU-only Windows PC.
+Eidolarch is a local-first Windows media library, cleanup and curation tool. GPU acceleration is optional; browsing, cataloging, hashing and file operations must remain useful on a normal CPU-only Windows PC.
 
-## 2.2 — Foundation and stabilization
+## 2.3 — Exact duplicate workspace
 
-### 2.2.14 — Cards and UI polish
-- Distinct browse modes:
-  - **Tiles** — dense visual browsing;
-  - **Cards** — large preview + metadata + contextual right panel;
-  - **Table** — compact metadata mode, intentionally deferred for deeper work later.
-- Cards expose duplicate copies directly with thumbnail/path/match information.
-- Viewer tooltips are control-specific; no large tooltip covers the zoom toolbar.
-- Relationship graph uses lighter/thinner interaction styling.
-- Favorites, entity search (`@name`), separate Help/Viewer/Settings/Graph windows and cross-window locale/theme propagation are part of the stabilized shell.
+Status: implemented and being stabilized through 2.3.x fixes.
 
-### Foundation already present
-- PhotoMind → Eidolarch data compatibility.
-- Stable indexing/recovery and background jobs.
-- Eco / Balanced / Performance; CPU / CUDA / Auto.
-- Viewer zoom, pan, 100%, fit and fullscreen.
-- QR-first LAN access and optional custom public URL.
-- Folder picker, first-run onboarding, recursive folder counts and Explorer-style `[..]`.
-- Settings tabs, diagnostics, Favorites, named-entity search and PWA shell.
+- Exact-file duplicate semantics are isolated behind `exact_duplicate_rows()`.
+- Workspace hierarchy: **Duplicate group → Location → File**.
+- Same logical file keeps one visual marker across physical copies.
+- Groups may overlap; weak redundant bridges are suppressed.
+- Reclaim estimates are deduplicated by exact file identity.
+- File/location/group cleanup uses preview, server-side revalidation and the Windows Recycle Bin.
+- Storage-priority rules influence preferred locations; folder depth breaks equal-priority ties.
+- Same-folder physical copies can be reduced to one keeper; the oldest filesystem creation time is kept.
 
-## 2.3 — Duplicate groups
+## 2.4 — Video foundation
 
-Goal: expose where matching files have been copied without mixing this workflow with visual similarity.
+Goal: add video as a first-class media type without changing the classic photo workflow when **Photos** is selected.
 
-- Current duplicate workspace uses the hierarchy **Duplicate group → Location → File**.
-- In v1 a location is the file's direct physical parent folder.
-- The UI does not depend on SHA-256 details; duplicate identity is isolated behind a replaceable matcher/helper.
-- Groups may overlap: one physical/logical file may participate in more than one meaningful folder relationship.
-- Weak bridge relations are suppressed when the same shared files are already represented through a stronger common location.
-- Matching logical files use stable color markers across locations and highlight their peers on hover.
-- Same-folder duplicates remain representable as one-location groups.
+- Global switch: **Photos | Videos | All**; Photos remains the default/classic Eidolarch mode.
+- Introduce `IMAGE_EXTS`, `VIDEO_EXTS`, `SUPPORTED_EXTS`.
+- Extend the existing `photos` table minimally with `media_type=image|video` and `duration_ms`; keep `photo_id`/table names for compatibility.
+- Images continue through Pillow; videos use bundled `ffprobe`/`ffmpeg` for metadata and thumbnails.
+- Video MVP: metadata, duration, dimensions, thumbnail, SHA-256, browsing, search scope/filtering, file operations and exact duplicates.
+- Duplicate Workspace works for both media types while remaining exact-only.
+- Shared viewer shell with separate photo and video renderers; video gets native playback controls/timeline.
+- Video cards show thumbnail, play marker and duration.
+- Cheap catalog/hash/thumbnail stages must not depend on `embedder.ensure_loaded()`.
+- No video AI in MVP: no entities/OCR/VLM/sampled-frame embeddings yet.
+- Transcoded/near-duplicate videos are explicitly not Exact duplicates; future video fingerprinting is separate.
 
-Next:
-- validate grouping on the real archive;
-- add scalable compact/expanded rendering for very large groups;
-- show overlap/unique counts and reclaimable size;
-- use path-priority rules for recommendations;
-- add safe location-level cleanup only after validation: confirmed duplicates only, Recycle Bin, immediate UI refresh.
+## 2.5 — Windows application packaging
 
-## 2.4 — Entities: people and pets
-- Improve object proposals and identity workflow before scaling automation.
-- Animals: detector proposes boxes; SigLIP classifies crop as dog/cat and later identifies individual pets via prototypes/candidates.
-- People: person detection is not enough for naming; require usable face → face embedding → candidate/cluster.
-- Merge duplicate detections of one animal.
-- Candidate review: confirm/reject before aggressive propagation.
-- Named entities such as Tera, Nyusha, Moyva and people are first-class search filters.
+Goal: ship Eidolarch as a conventional Windows application instead of a Python folder with batch files.
 
-## 2.5 — Similarity workspace
+- `Eidolarch-Setup.exe` style installer.
+- Bundled/embedded Python runtime and application dependencies.
+- Bundled `ffmpeg`/`ffprobe`.
+- Normal launcher with no PowerShell/console experience in ordinary use.
+- Start-menu/desktop shortcuts, uninstall and version metadata.
+- Explicit repair and debug/diagnostic modes remain available.
+- Preserve/migrate the user `data` directory across upgrades.
+- Installer/updater can use GitHub Releases; Git is not required on end-user machines.
+
+## 2.6 — Similarity workspace
+
 - Sort a selection/folder by similarity to a reference image.
-- Cluster/group visually similar photos.
+- Cluster/group visually similar photos (and later compatible video representations).
 - Manual triage labels: Keep / Reject / Neutral.
 - Filtering and bulk actions by triage label.
+- Similar remains separate from Exact duplicates.
 
-## 2.6 — Series
+## 2.7 — Series
+
 - Detect shooting series from time proximity + perceptual/embedding similarity.
 - Present a series as one review unit.
 - Cheap CPU quality metrics: sharpness, motion blur, exposure, resolution/noise.
 
-## 2.7 — Best-shot curation
+## 2.8 — Best-shot curation
+
 - “These 10 are very similar; keep 2” workflow.
 - Ranking combines technical quality with diversity.
 - Explanations such as sharper, eyes open, different pose, better exposure.
 - AI proposes only; deletion always requires user confirmation.
 
-## 2.8 — Unified search + OCR
-- Combine semantic image search, named entities, EXIF/time, folders, tags, OCR and user triage.
-- Plain text searches semantic/OCR/filename/path/metadata.
-- `@name` is an exact named entity.
-- `#tag` is an exact tag.
-- OCR indexes documents, screenshots, signs and photographed text.
+## 2.9 — People and pets
 
-## 2.9 — Product packaging
-- One user-facing Eidolarch launcher/application.
-- Hidden local backend; no server console in normal use.
-- Relaunch opens a window against an already-running backend.
-- Optional tray/background indexing mode.
-- Keep visible console mode only for development/diagnostics.
-- Installer/updater based on GitHub Releases; Git is not required on end-user machines.
+- Mature the current experimental named-entity pipeline.
+- People: usable face → face embedding → candidate/cluster/review.
+- Pets: detector/crop verification → identity prototypes/candidates.
+- Confirm/reject workflow before broad propagation.
+- Named people/pets remain first-class `@name` search filters.
 
-## 3.0 — Curator
-- Unified cleanup dashboard: duplicate packages, near-duplicates, similar series, low-quality frames and estimated reclaimable space.
-- Guided group-by-group review.
-- Highlights: technically strong and diverse photos/series, locally by default.
+## 3.0 — Unified curator and search
+
+- Unified cleanup dashboard for exact duplicates, near-duplicates/similar groups, series, low-quality frames and reclaim estimates.
+- Search combines semantic content, named entities, metadata, folders, tags and OCR when available.
+- Guided review rather than irreversible automation.
 
 ## Later
-- On-demand VLM reasoning for selected groups.
+
+- OCR as a first-class index.
+- On-demand VLM reasoning for selected groups/series.
+- Video sampled-frame embeddings and video fingerprinting for transcoded copies.
 - GPS map with privacy-preserving lazy loading.
 - Event grouping and richer relationship graph.

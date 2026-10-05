@@ -313,5 +313,9 @@
   "duplicates.groupPlanEmpty": "Nothing can be removed from the other locations while preserving the preferred location.",
   "duplicates.groupPlanTitle": "Keep: {path}",
   "duplicates.groupPlanAffected": "Affected locations:",
-  "duplicates.groupPlanMissing": "Skipped: {n} files not represented in the preferred location."
+  "duplicates.groupPlanMissing": "Skipped: {n} files not represented in the preferred location.",
+  "duplicates.removeAdditionalCopies": "Remove additional copies",
+  "duplicates.locationExtras": "Additional copies in this location",
+  "duplicates.locationExtraEmpty": "No additional exact copies can be removed safely in this location.",
+  "duplicates.locationExtraPreview": "Remove: {remove} · remain: {remain} · reclaim ≈ {size}"
 }

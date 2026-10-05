@@ -318,5 +318,9 @@
   "duplicates.groupPlanEmpty": "В остальных местоположениях нет файлов, которые можно безопасно удалить с сохранением выбранного местоположения.",
   "duplicates.groupPlanTitle": "Оставить: {path}",
   "duplicates.groupPlanAffected": "Затронутые местоположения:",
-  "duplicates.groupPlanMissing": "Пропущено: {n} файлов, которых нет в предпочтительном местоположении."
+  "duplicates.groupPlanMissing": "Пропущено: {n} файлов, которых нет в предпочтительном местоположении.",
+  "duplicates.removeAdditionalCopies": "Удалить дополнительные копии",
+  "duplicates.locationExtras": "Дополнительные копии в этом местоположении",
+  "duplicates.locationExtraEmpty": "В этом местоположении нет дополнительных exact-копий, которые можно безопасно удалить.",
+  "duplicates.locationExtraPreview": "Удалить: {remove} · останется: {remain} · можно освободить ≈ {size}"
 }

@@ -1,65 +1,48 @@
 # UX clarity audit
 
-This file tracks controls and states that are easy to misunderstand and should either explain themselves in the UI or link to contextual help.
+This file tracks controls/states that are easy to misunderstand and should either explain themselves in the UI or link to contextual Help.
 
-## Already covered in v2.0.2 help/tooltips
+## Current conventions
 
-- Search scope: root vs current folder vs selected tags.
-- Back/Forward: restores Eidolarch window state, not browser history.
-- Reset all: returns to the library root and clears search/folder/tag filters.
-- Folder count: currently means photos directly in the folder; this is intentionally called out until recursive counts are implemented.
-- Tag logic: selected tags use AND.
-- Semantic score: ranking score, not a probability.
-- Red search tint: weaker relative result within the current query.
-- Red photo border / duplicate badge: duplicates were found.
-- AI: GPU/CPU/API: actual inference location.
-- Background indexing: browsing remains available while it runs.
-- Grid view buttons and tag-panel collapse button.
-- LAN access and network popover.
+- Top-level modes are Folders, Tags, Favorites and Duplicates. The active mode button is the mode label; the UI must not repeat the same label beside the buttons.
+- `Reset all` is for clearing an actual folder/tag/search scope and returning to library root. It is not shown merely because Favorites or Duplicates is active.
+- Back/Forward restores Eidolarch window state, not browser history.
+- Duplicates means **byte-identical exact files**. Similar means visually/semantically related media and is never a synonym for Duplicate.
+- Duplicate cleanup is explicit and reversible through the Windows Recycle Bin.
+- Same-folder duplicate cleanup keeps the oldest physical file by creation time; filename suffixes are not used as the keeper rule.
+- Search similarity values are ranking scores, not probabilities.
+- AI: GPU/CPU/API describes the actual inference backend.
+- Browsing remains available while background indexing runs.
+- Viewer, Settings, Help and Graph may live in independent application windows but share one backend/database.
 
-## Still needs stronger product treatment
+## Still needs product treatment
 
-### Folder counts
-Replace the ambiguous single number with explicit direct/recursive information, e.g. `3 here · 148 total`, and optionally subfolder count.
+### Folder layout
+Folder cards should use a responsive grid that calculates how many cards fit in the available width; folder cards do not need the large right-side context area used by media cards.
 
-### Breadcrumbs
-Current breadcrumb implementation needs visual separators, truncation for long paths, a clear root/home segment and search-scope synchronization.
+### Reconciliation after file restore
+The filesystem is the source of truth. A file restored from the Windows Recycle Bin must be rediscovered even if watchdog misses the event. Regression scenario: two exact copies → trash one → restore it → duplicate count returns to two.
 
-### Duplicates mode
-Add a first-class top-level Duplicates mode that shows duplicate groups rather than requiring per-photo inspection.
-
-### Viewer
-Default photo viewing should move to a separate application window. The current modal overlay competes visually with the system window controls.
+### Video foundation (2.4)
+Add a prominent Photos / Videos / All switch. Photos must preserve classic Eidolarch behavior. Video needs its own renderer inside a shared viewer shell, while exact duplicate semantics remain unchanged.
 
 ### Entities
-The Objects inspector should explain that a name applies to a detected person/pet entity and that automatic propagation is heuristic. Add explicit confirm/review flow.
+The Objects inspector should explain that a name applies to a detected person/pet entity and that automatic propagation is heuristic. Mature identity confirmation/review remains future work.
 
 ### Automatic tags
-Expose tag source (automatic/manual/metadata/entity) and, for automatic tags, confidence. Users otherwise cannot tell why a tag exists.
+Expose tag source (automatic/manual/metadata/entity) and confidence where useful.
 
 ### Search quality
-Add an explicit relevance threshold / adaptive cut-off affordance or at least an explanation when low-confidence results are included.
+Add an explicit relevance threshold/adaptive cut-off affordance or clearer explanation when weak results are included.
 
-### Similar vs duplicates
-Keep terminology stable everywhere: `Duplicates` = same/near-copy file; `Similar` = visually/semantically close scene. Avoid using one as a synonym for the other.
-
-### File operations
-When internal Copy/Cut is active, show a persistent clipboard status (`3 photos copied`, `2 photos cut`) and destination/paste affordance.
-
-### Undo/redo
-After file operations, use a temporary toast with Undo instead of relying only on keyboard shortcuts.
+### Internal clipboard and undo
+Show persistent Copy/Cut state and favor operation toasts with Undo over keyboard-only discovery.
 
 ### LAN security
-If LAN access is enabled, show a persistent but unobtrusive network indicator. Clearly distinguish read-only LAN from full-access LAN.
-
-### First run
-Add a short first-run walkthrough: add folder → browse immediately → indexing continues in background → search becomes progressively available.
+If LAN access is enabled, show a persistent but unobtrusive network indicator and clearly distinguish read-only from full-access mode.
 
 ### Empty states
-Each empty state should say why it is empty and what the next action is: empty library, empty folder, no tags yet, no AI index yet, no search matches, no duplicates.
-
-### Background jobs
-Show which stage is active and why counters differ (`catalog`, `AI`, `hash`, `objects`, `tags`).
+Each empty state should explain why it is empty and what action is available: library, folder, tags, AI index, search, Favorites, Duplicates.
 
 ### Localization
-All user-visible strings, including backend status labels and errors, must come from localization resources. No mixed-language UI.
+All user-visible strings, dynamic counters, backend status labels and errors must use locale resources. Cache/version changes must not leave JS and locale dictionaries out of sync.

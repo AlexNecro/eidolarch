@@ -41,7 +41,7 @@ _FS_STATS_CACHE = {}
 _FS_STATS_LOCK = threading.Lock()
 _FS_STATS_TTL = 120.0
 db.init_db()
-APP_VERSION = '2.3.5'
+APP_VERSION = '2.3.7'
 app = FastAPI(title='Eidolarch', version=APP_VERSION)
 
 @app.middleware('http')
@@ -808,6 +808,7 @@ def duplicate_location_groups(limit: int = Query(80, ge=1, le=200), offset: int 
             locations_json.append({
                 'path':loc,
                 'priority':_duplicate_path_score(loc),
+                'depth':_duplicate_path_depth(loc),
                 'file_count':len(files),
                 'logical_count':logical_here,
                 'extra_copy_count':max(0,len(files)-logical_here),
@@ -882,6 +883,11 @@ def _duplicate_path_score(path: str) -> int:
     winner=max(matches,key=lambda r:(len(r['path']),-r['order']))
     return int(winner['weight'])
 
+def _duplicate_path_depth(path: str) -> int:
+    """Depth used only as a tie-breaker after explicit storage priority."""
+    normalized=str(path or '').replace('\\','/').strip('/')
+    return len([part for part in normalized.split('/') if part])
+
 def _duplicate_global_summary():
     """Return exact-duplicate reclaim totals without double-counting UI groups."""
     from collections import defaultdict
@@ -899,6 +905,7 @@ def _duplicate_global_summary():
         files+=len(copies)
         ranked=sorted(copies,key=lambda r:(
             _duplicate_path_score(str(Path(r['path']).parent)),
+            _duplicate_path_depth(str(Path(r['path']).parent)),
             int((r.get('width') or 0)*(r.get('height') or 0)),
             int(r.get('size') or 0),
             1 if r.get('taken_at') else 0,
@@ -931,7 +938,7 @@ def duplicates(photo_id: int):
         d['match_type']='exact'
         d['path_priority']=_duplicate_path_score(d.get('path',''))
         d['is_current']=int(r['id'])==int(photo_id)
-        d['_rank']=(d['path_priority'], int((d.get('width') or 0)*(d.get('height') or 0)), int(d.get('size') or 0), 1 if d.get('taken_at') else 0)
+        d['_rank']=(d['path_priority'], _duplicate_path_depth(str(Path(d.get('path') or '').parent)), int((d.get('width') or 0)*(d.get('height') or 0)), int(d.get('size') or 0), 1 if d.get('taken_at') else 0)
         group.append(d)
     if group:
         winner=max(group, key=lambda x:(x['_rank'], 1 if x['is_current'] else 0, -int(x['id'])))
@@ -1189,6 +1196,82 @@ def _duplicate_group_keep_plan(photo_ids: list[int], keep_path: str):
     plan['keep_path']=keep_path
     plan['missing_in_preferred_count']=missing_count
     return plan
+
+def _file_creation_time_ns(path: str) -> int:
+    """Return the physical file creation/birth time used for duplicate keeper choice.
+
+    Python 3.12 on Windows exposes st_birthtime_ns. Older runtimes use st_ctime_ns,
+    which is the Windows creation time. A missing file sorts last and will be caught
+    by the ordinary destructive-operation safety checks.
+    """
+    try:
+        st=Path(path).stat()
+        value=getattr(st,'st_birthtime_ns',None)
+        if value is None:
+            value=getattr(st,'st_ctime_ns',0)
+        return int(value or 0)
+    except OSError:
+        return 2**63-1
+
+def _duplicate_location_extra_plan(photo_ids: list[int]):
+    """Keep the oldest physical exact copy per hash inside one location.
+
+    Candidates are restricted to the IDs supplied by the current UI location.
+    The earliest filesystem creation time wins; names such as ``(2)`` or ``copy``
+    are deliberately ignored. The ordinary exact-copy safety guard is applied to
+    the remaining candidates immediately before trashing.
+    """
+    requested=[]; seen=set()
+    for raw in photo_ids:
+        pid=int(raw)
+        if pid not in seen:
+            requested.append(pid); seen.add(pid)
+    requested_set=set(requested)
+    visited=set(); keep_ids=[]; candidates=[]
+    for pid in requested:
+        if pid in visited:
+            continue
+        row=db.get_photo(pid)
+        if not row:
+            visited.add(pid)
+            continue
+        members={pid}
+        members.update(int(x) for x in db.photo_ids_by_hash(pid))
+        members=[x for x in members if x in requested_set and db.get_photo(x)]
+        visited.update(members)
+        if not members:
+            continue
+        members.sort(key=lambda x:(_file_creation_time_ns(str(db.get_photo(x)['path'])),x))
+        keep_ids.append(members[0])
+        candidates.extend(members[1:])
+    plan=_duplicate_safe_delete_plan(candidates)
+    plan['kept_count']=len(keep_ids)
+    plan['remaining_count']=len(requested)-plan['deletable_count']
+    return plan
+
+@app.post('/api/duplicates/location-preview')
+def duplicate_location_preview(body:FileOpIn,request:Request):
+    if request.client and request.client.host not in ('127.0.0.1','::1'):
+        raise HTTPException(403,'Файловые операции доступны только локально')
+    return _duplicate_location_extra_plan(body.photo_ids)
+
+@app.post('/api/duplicates/location-trash-safe')
+def duplicate_location_trash_safe(body:FileOpIn,request:Request):
+    if request.client and request.client.host not in ('127.0.0.1','::1'):
+        raise HTTPException(403,'Файловые операции доступны только локально')
+    plan=_duplicate_location_extra_plan(body.photo_ids)
+    ids=plan['photo_ids']
+    if not ids:
+        return plan | {'items':[]}
+    safety=_duplicate_safe_delete_plan(ids)
+    ids=safety['photo_ids']
+    if not ids:
+        return plan | safety | {'items':[]}
+    try:
+        items=system_ops.trash_photos(ids)
+        return plan | safety | {'items':items}
+    except Exception as e:
+        raise HTTPException(400,str(e))
 
 @app.post('/api/duplicates/group-preview')
 def duplicate_group_preview(body:DuplicateGroupPlanIn,request:Request):
